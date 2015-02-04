@@ -1,0 +1,16 @@
+Multicast session ended. Results... 
+	Received Content (bytes): 26112
+	Received Total (bytes): 26152
+	Sent Content (bytes): 2560
+	Sent Total (bytes): 2600
+	Avg Cost from macomb: 3.0
+	Avg Cost from cycle1: 23.0
+	Avg Cost from marcy: 42.0
+	Avg Cost from cycle3: 45.0
+	Avg Cost from sawteeth: 53.0
+	Avg Cost from cycle2: 32.0
+	Avg Cost from cascade: 11.0
+	Avg Cost from phelps: 16.0
+	Avg Cost from seward: 23.0
+	Avg Cost from colden: 8.0
+	Avg Cost from nye: 0.0

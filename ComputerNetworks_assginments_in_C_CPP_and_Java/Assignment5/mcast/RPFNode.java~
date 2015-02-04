@@ -1,0 +1,573 @@
+
+package mcast;
+
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import java.util.regex.*;
+
+/*  
+ * Packet Format:
+ * - Total size: 256 bytes (0.25 kbytes)
+ * - - Prelude: 1 byte
+ * - - Flags: 1 byte
+ * - - Group ID: 2 bytes
+ * - - Group Source: 4 bytes
+ * - - Launchtime: 8 bytes
+ * - - Length: 4 bytes
+ * - - Payload: 236 bytes
+ */
+
+public class RPFNode {
+    public static String name;
+    public static Integer port;
+    public static HashSet<String> allNodes;
+    public static PacketLog packets;
+    private static final int PSTATE_DEFAULT = 0;
+    private static final int PSTATE_NEIGHBORS = 1;
+    private static final int PSTATE_DONE = 2;
+    
+    public static void main(String args[]) {
+	if(args.length < 2) {
+	    System.out.println("USAGE: java RPFNode <port> <top file> [<stats>]");
+	    System.exit(0);
+	}
+	
+	DatagramSocket rpfSocket;
+	RoutingTable routingTable;
+	RPFMulticastTable mcastTable;
+	String file = "";
+	Object ioLock;
+	List<String> sendQueue;
+	packets = new PacketLog();
+	
+	try {
+	    // get initial data
+	    name = InetAddress.getLocalHost().getHostName().split("\\.")[0];
+	    System.out.println("DEBUG: " + name);
+	    allNodes = new HashSet<String>();
+	    port = Integer.parseInt(args[0]);
+	    rpfSocket = new DatagramSocket(port);
+	    // timeout is for benefit of unicast 
+	    rpfSocket.setSoTimeout(5000);
+	    file = args[1];
+	    routingTable = parseTopologyFile(file);
+	    mcastTable = new RPFMulticastTable(name);
+	    ioLock = new Object();
+	    sendQueue = Collections.synchronizedList(new LinkedList<String>());
+	    
+	    // get unicast routing information
+	    UnicastSendThread uSend = new UnicastSendThread(routingTable, rpfSocket);
+	    UnicastReceiveThread uRecv = new UnicastReceiveThread(routingTable, rpfSocket);
+	    uSend.start(); uRecv.start();
+	    uRecv.join();
+	    
+	    // commence multicast algorithm
+	    rpfSocket.setSoTimeout(0);
+	    RPFMulticastReceiveThread mRecv = new RPFMulticastReceiveThread(routingTable, mcastTable, rpfSocket, ioLock);
+	    RPFMulticastSendThread mSend = new RPFMulticastSendThread(rpfSocket, routingTable, mcastTable, sendQueue, ioLock);
+	    RPFCommandLineThread mCmd = new RPFCommandLineThread(mcastTable, sendQueue, ioLock);
+	    mRecv.start(); mSend.start(); mCmd.start();
+	    mCmd.join();
+	    
+	    // print stats
+	    if(args.length > 2 && args[2].equals("stats")) {
+		System.out.println("\nMulticast session ended. Results... ");
+		System.out.println("\tReceived Content (bytes): " + packets.getBroadcastBytesReceived());
+		System.out.println("\tReceived Total (bytes): " + packets.getTotalBytesReceived());
+		System.out.println("\tSent Content (bytes): " + packets.getBroadcastBytesSent());
+		System.out.println("\tSent Total (bytes): " + packets.getTotalBytesSent());
+		for(String node : allNodes) {
+		    if(!node.equals(name)) {
+			System.out.println("\tAvg Cost from " + node + ": " + packets.getAverageLatency(node));
+		    }
+		}
+	    }
+	    System.exit(0);
+	}
+	catch(FileNotFoundException e) {
+	    System.err.println("FATAL ERROR: Could not find topology file " + file);
+	    e.printStackTrace();
+	}
+	catch(Exception e) {
+	    e.printStackTrace();
+	}
+	finally {
+	    System.exit(-1);
+	}
+    }
+    
+    public static RoutingTable parseTopologyFile(String file) throws IOException {
+	HashMap<String, Double> initialTable = new HashMap<String, Double>();
+	BufferedReader in = new BufferedReader(new FileReader(file));
+	String fline = in.readLine();
+	int state = PSTATE_DEFAULT;
+	
+	while(fline != null) {
+	    if(fline.matches("^end")) {
+		if(state == PSTATE_NEIGHBORS) {
+		    state = PSTATE_DONE;
+		}
+	    }
+	    else if(fline.matches("^[A-Za-z0-9_\\-]+")) {
+		if(state == PSTATE_DEFAULT || state == PSTATE_DONE) {
+		    String[] splice = fline.split("\\s");
+		    System.out.println("DEBUG: Observing entry for " + splice[0]);
+		    allNodes.add(splice[0]);
+		    if(state == PSTATE_DEFAULT && splice[0].equals(name)) {
+			state = PSTATE_NEIGHBORS;
+		    }
+		}
+		else if(state == PSTATE_NEIGHBORS) {
+		    break;
+		}
+	    }
+	    else if(fline.matches("^  [A-Za-z0-9_\\-]+ (\\d*\\.\\d+|\\d+)")) {
+		if(state == PSTATE_NEIGHBORS) {
+		    String[] splice = fline.split("\\s");
+		    String neighbor = splice[2];
+		    Double cost = Double.parseDouble(splice[3]);
+		    initialTable.put(neighbor, cost);
+		}
+	    }
+	    
+	    fline = in.readLine();
+	}
+	
+	return new RoutingTable(initialTable);
+    }
+}
+
+class RPFCommandLineThread extends Thread {
+    private BufferedReader cmdIn;
+    private RPFMulticastTable mTable;
+    private List<String> msgQueue;
+    private Object ioLock;
+    
+    public RPFCommandLineThread(RPFMulticastTable mTable, List<String> msgQueue, Object ioLock) {
+	cmdIn = new BufferedReader(new InputStreamReader(System.in));
+	this.mTable = mTable;
+	this.msgQueue = msgQueue;
+	this.ioLock = ioLock;
+    }
+    
+    public void run() {
+	try {
+	    while(true) {
+		String cline = "";
+		cline = cmdIn.readLine();
+		
+		// join: duh
+		if(cline.matches("^join [0-9]+")) {
+		    String[] splice = cline.split("\\s");
+		    String cmd = splice[0];
+		    String grp = splice[1];
+		    Integer gno = Integer.parseInt(grp);
+		    if(gno < 0 || gno >= 65536) {
+			synchronized(ioLock) {
+			    System.err.println("ERROR [join]: group number must be between 0 and 65535.");
+			}
+			continue;
+		    }
+		    
+		    if(!mTable.hasGroup(gno)) {
+			mTable.addGroup(gno);
+			System.out.println("DEBUG [join]: joined group #" + gno);
+			synchronized(msgQueue) {
+			    msgQueue.add("UGRP" + gno + "\r\n");
+			}
+		    }
+		    else {
+			synchronized(ioLock) {
+			    System.err.println("ERROR [join]: cannot join group " + gno + " because we are already a member.");
+			}
+			continue;
+		    }
+		}
+		// send: broadcast message to this group
+		else if(cline.matches("^send [0-9]+ .+")) {
+		    String[] splice = cline.split("\\s");
+		    String cmd = splice[0];
+		    String grp = splice[1];
+		    Integer gno = Integer.parseInt(grp);
+		    if(gno < 0 || gno >= 65536) {
+			synchronized(ioLock) {
+			    System.err.println("ERROR [send]: group number must be between 0 and 65535.");
+			}
+			continue;
+		    }
+		    if(!mTable.hasGroup(gno)) {
+			System.err.println("ERROR [send]: cannot send msg to group " + gno + " because we are not a member.");
+			continue;
+		    }
+		    Pattern msgPattern = Pattern.compile("^(send) ([0-9]+) (.+)");
+		    Matcher msgMatch = msgPattern.matcher(cline);
+		    String msg = "";
+		    if(msgMatch.matches()) {
+			msg = msgMatch.group(3);
+		    }
+		    else {
+			synchronized(ioLock) {
+			    System.out.println("ERROR [send]: usage is \"send <group number> <message>\"");
+			}
+			continue;
+		    }
+		    
+		    synchronized(msgQueue) {
+			msgQueue.add("GRP" + gno + "\r\n" + msg);
+		    }
+		}
+		// drop: leave group
+		else if(cline.matches("^drop [0-9]+")) {
+		    String[] splice = cline.split("\\s");
+		    String cmd = splice[0];
+		    String grp = splice[1];
+		    Integer gno = Integer.parseInt(grp);
+		    if(gno < 0 || gno >= 65536) {
+			synchronized(ioLock) {
+			    System.out.println("ERROR [drop]: group number must be between 0 and 65535.");
+			}
+			continue;
+		    }
+		    
+		    mTable.removeGroup(gno);
+		}
+		// bombard: send random n bytes
+		else if(cline.matches("^bombard [0-9]+ [0-9]+")) {
+		    String[] splice = cline.split("\\s");
+		    Integer gno = Integer.parseInt(splice[1]);
+		    Integer bno = Integer.parseInt(splice[2]);
+		    if(gno < 0 || gno >= 65536) {
+			System.out.println("ERROR [drop]: group number must be between 0 and 65535.");
+			continue;
+		    }
+		    if(bno <= 0 || bno > 236) {
+			System.out.println("ERROR [drop]: must send 1 to 236 bytes.");
+			continue;
+		    }
+		    
+		    String msg = MulticastPacket.spitRandomBytes(bno);
+		    synchronized(msgQueue) {
+			msgQueue.add("GRP" + gno + "\r\n" + msg);
+		    }
+		}
+		// quit: end program
+		else if(cline.matches("^quit")) {
+		    return;
+		}
+		else {
+		    System.out.println("ERROR [mcast cmd]: Unrecognized command \"" + cline + "\"");
+		}
+	    }
+	}
+	catch(Exception e) {
+	    e.printStackTrace();
+	    return;
+	}
+    }
+}
+
+class RPFMulticastReceiveThread extends Thread {
+    private RoutingTable uTable;
+    private RPFMulticastTable mTable;
+    private DatagramSocket socket;
+    private Object ioLock;
+    
+    public RPFMulticastReceiveThread(RoutingTable uTable, RPFMulticastTable mTable, DatagramSocket socket, Object ioLock) {
+	this.uTable = uTable;
+	this.mTable = mTable;
+	this.socket = socket;
+	this.ioLock = ioLock;
+    }
+    
+    public void run() {
+	while(true) {
+	    try {
+		// catch new packet
+		byte[] buff = new byte[MulticastPacket.PACKET_SIZE];
+		DatagramPacket recvPacket = new DatagramPacket(buff, buff.length);
+		socket.receive(recvPacket);
+		
+		// parse packet info
+		byte pPrelude = buff[0];
+		boolean[] pFlags = MulticastPacket.parseFlags(buff, 1, 2);
+		short pGid = MulticastPacket.parseGid(buff, 2, 4);
+		byte[] pSource = MulticastPacket.parseSource(buff, 4, 8);
+		long pLaunch = MulticastPacket.parseLaunch(buff, 8, 16);
+		int pLength = MulticastPacket.parseLength(buff, 16, 20);
+		char[] pPayload = MulticastPacket.parsePayload(buff, 20, 20 + pLength);
+		int gid = (int) pGid;
+		String incoming = recvPacket.getAddress().getHostName().split("\\.")[0];
+		String src = InetAddress.getByAddress(pSource).getHostName().split("\\.")[0];
+		String upstream = src.equals(mTable.getHost()) ? "" : uTable.findShortestTo(src, uTable.getHostName()).key;
+		boolean deviated = !upstream.equals(incoming);
+		
+		// new forwarding packet info
+		long nLaunch = pLaunch + uTable.get(incoming, incoming).longValue();
+		
+		// push packet descriptor
+		boolean trv = pFlags[0] || pFlags[1] || deviated;
+		RPFNode.packets.pushReceivedPacket(new PacketDescriptor(gid, src, pLength, nLaunch, !trv));
+		
+		// flood to all neighbors if we're on shortest path to source
+		if(!deviated) {
+		    // broadcast unprune message
+		    if(pFlags[1]) {
+			// get rid of all exclusions from this group on this source
+			mTable.removeAllExclusions(incoming, (int) pGid);
+			
+			// flood unprune message if we are not a group member
+			if(!mTable.hasGroup((int) pGid)) {
+			    HashSet<String> downStream = new HashSet<String>(uTable.getNeighbors());
+			    downStream.remove(upstream);
+			    byte[] pkt = MulticastPacket.formatRPFHeader(pGid, pSource, nLaunch, pLength, false, true);
+			    System.arraycopy(buff, 20, pkt, 20, 236);
+			    for(String down : downStream) {
+				if(!mTable.isExcluded(down, src, (int) pGid)) {
+				    new MulticastFloodThread(socket, down, pkt).start();
+				    // push packet descriptor
+				    RPFNode.packets.pushSentPacket(new PacketDescriptor(gid, mTable.getHost(), pLength, nLaunch, false));
+				}
+			    }
+			}
+		    }
+		    else {
+			// display message all proper if we are a member of the group
+			if(mTable.hasGroup((int) pGid)) {
+			    Long currentTime = System.currentTimeMillis();
+			    System.out.println("[mcast recv]: Got message from " + src + " via " + incoming + " [" + pGid + "]: ");
+			    System.out.println("\t" + new String(pPayload));
+			    System.out.println("[mcast recv]: Broadcast cost was " + nLaunch);
+			}
+			
+			// flood to all neighbors
+			HashSet<String> downStream = new HashSet<String>(uTable.getNeighbors());
+			downStream.remove(upstream);
+			// send prune message if we are a dead-end and not a group member
+			if(downStream.isEmpty() && !mTable.hasGroup((int) pGid)) {
+			    System.out.println("DEBUG [mcast recv]: Got message from group #" + pGid + " via " + incoming + ", pruning...");
+			    byte[] pkt = MulticastPacket.formatRPFHeader(pGid, pSource, nLaunch, 0, true, false);
+			    //System.arraycopy(buff, 20, pkt, 20, 236);
+			    InetAddress uaddr = InetAddress.getByName(upstream);
+			    DatagramPacket sendPacket = new DatagramPacket(pkt, pkt.length, uaddr, socket.getLocalPort());
+			    socket.send(sendPacket);
+			    
+			    // push packet descriptor
+			    RPFNode.packets.pushSentPacket(new PacketDescriptor(gid, mTable.getHost(), pLength, nLaunch, false));
+			    continue;
+			}
+			else if(!downStream.isEmpty() && !mTable.hasGroup((int) pGid)) {
+			    System.out.println("DEBUG [mcast recv]: Got message from group #" + pGid + " via " + incoming + ", forwarding...");
+			}
+			byte[] pkt = MulticastPacket.formatRPFHeader(pGid, pSource, nLaunch, pLength, pFlags[0], pFlags[1]);
+			System.arraycopy(buff, 20, pkt, 20, 236);
+			for(String down : downStream) {
+			    if(!mTable.isExcluded(down, src, (int) pGid)) {
+				new MulticastFloodThread(socket, down, pkt).start();
+				// push packet descriptor
+				RPFNode.packets.pushSentPacket(new PacketDescriptor(gid, mTable.getHost(), pLength, nLaunch));
+			    }
+			}
+		    }
+		}
+		else {
+		    // if we received a prune message
+		    if(pFlags[0]) {
+			// exclude link from future broadcasts
+			mTable.addExclusion(incoming, src, (int) pGid);
+			HashSet<String> exclusions = mTable.getExclusions(src, (int) pGid);
+			
+			// if all neighbors are excluding themselves,
+			// propagate prune message upstream
+			HashSet<String> downStream = new HashSet<String>(uTable.getNeighbors());
+			downStream.remove(upstream);
+			downStream.removeAll(exclusions);
+			if(downStream.isEmpty() && !mTable.hasGroup((int) pGid)) {
+			    // do the funky prune yall...
+			    System.out.println("DEBUG [mcast recv]: All neighbors pruned from group #" + pGid + " [Source: " + src + "]");
+			    byte[] pkt = MulticastPacket.formatRPFHeader(pGid, pSource, nLaunch, 0, true, false);
+			    //System.arraycopy(buff, 20, pkt, 20, 236);
+			    InetAddress uaddr = InetAddress.getByName(upstream);
+			    DatagramPacket sendPacket = new DatagramPacket(pkt, pkt.length, uaddr, socket.getLocalPort());
+			    
+			    // push packet descriptor
+			    RPFNode.packets.pushSentPacket(new PacketDescriptor(gid, mTable.getHost(), pLength, nLaunch, false));
+			    socket.send(sendPacket);
+			}
+			// move to next packet
+			continue;
+		    }
+		    // else, send prune message to incoming link
+		    else {
+			System.out.println("DEBUG [mcast recv]: Got message from group #" + pGid + " via " + incoming + ", pruning...");
+			byte[] pkt = MulticastPacket.formatRPFHeader(pGid, pSource, nLaunch, 0, true, false);
+			//System.arraycopy(buff, 20, pkt, 20, 236);
+			DatagramPacket sendPacket = new DatagramPacket(pkt, pkt.length, recvPacket.getAddress(), socket.getLocalPort());
+			
+			// push packet descriptor
+			RPFNode.packets.pushSentPacket(new PacketDescriptor(gid, mTable.getHost(), pLength, nLaunch, false));
+			socket.send(sendPacket);
+		    }
+		}
+	    }
+	    catch(ArrayIndexOutOfBoundsException e) {
+		System.err.println("ERROR [mcast recv]: corrupt packet received with length larger than allowable payload size.");
+	    }
+	    catch(UnknownHostException e) {
+		System.err.println("ERROR [mcast recv]: corrupt packet received with unidentifiable incoming link.");
+		System.err.println("ERROR [mcast recv]: " + e.getMessage());
+	    }
+	    catch(IllegalArgumentException e) {
+		System.err.println("ERROR [mcast recv]: prune and unprune bits cannot both be true.");
+	    }
+	    catch(Exception e) {
+		System.err.println("ERROR [mcast recv]: " + e.getMessage());
+		e.printStackTrace();
+	    }
+	}
+    }
+}
+
+class RPFMulticastSendThread extends Thread {
+    private DatagramSocket socket;
+    private RoutingTable uTable;
+    private RPFMulticastTable mTable;
+    private List<String> msgQueue;
+    private Object ioLock;
+    
+    public RPFMulticastSendThread(DatagramSocket socket, RoutingTable uTable, RPFMulticastTable mTable, List<String> msgQueue, Object ioLock) {
+	this.socket = socket;
+	this.uTable = uTable;
+	this.mTable = mTable;
+	this.msgQueue = msgQueue;
+	this.ioLock = ioLock;
+    }
+    
+    public void run() {
+	while(true) {
+	    try {
+		String front = "";
+		Integer gid = -1;
+		String payload = "";
+		boolean unprune = false;
+		boolean brk = false;
+		while(!brk) {
+		    synchronized(msgQueue) { brk = !msgQueue.isEmpty(); }
+		    if(brk) {
+			synchronized(msgQueue) { front = msgQueue.remove(0); }
+		    }
+		}
+		//System.out.println("DEBUG [mcast send]: Popped off queue:\n" + front);
+		if(front.matches("UGRP[0-9]+\r\n")) {
+		    gid = Integer.parseInt(front.split("\\s+")[0].substring(4));
+		    //payload = front.substring(front.split("\\s+")[0].length() + 1);
+		    //System.out.println("DEBUG [mcast send]: Broadcasting unprune message to group #" + gid);
+		    unprune = true;
+		}
+		else {
+		    gid = Integer.parseInt(front.split("\\s+")[0].substring(3));
+		    payload = front.substring(front.split("\\s+")[0].length() + 2);
+		    //System.out.println("DEBUG [mcast send]: Broadcasting " + payload + " to group #" + gid);
+		}
+		
+		// flood to all neighbors
+		HashSet<String> downStream = new HashSet<String>(uTable.getNeighbors());
+		//downStream.remove(mTable.getUpstream(gid));
+		byte[] pSource = InetAddress.getByName(mTable.getHost()).getAddress();
+		//Long pLaunch = System.currentTimeMillis();
+		Integer pLength = payload.length();
+		boolean[] pFlags = {false, unprune};
+		byte[] pkt = MulticastPacket.formatRPFHeader(gid.shortValue(), pSource, 0, pLength, pFlags[0], pFlags[1]);
+		System.arraycopy(payload.getBytes(), 0, pkt, 20, payload.length());
+		for(String down : downStream) {
+		    if(!mTable.isExcluded(down, mTable.getHost(), gid)) {
+			new MulticastFloodThread(socket, down, pkt).start();
+			// push packet descriptor
+			RPFNode.packets.pushSentPacket(new PacketDescriptor(gid, mTable.getHost(), pLength, 0, !unprune));
+		    }
+		}
+	    }
+	    catch(IllegalArgumentException e) {
+		System.err.println("ERROR [mcast send]: prune and unprune bits cannot both be true.");
+	    }
+	    catch(Exception e) {
+		e.printStackTrace();
+		continue;
+	    }
+	}
+    }
+}
+
+class RPFMulticastTable {
+    private String host;
+    private HashSet<Integer> groups;
+    private HashMap<Integer, HashMap<String, String>> upstream;
+    private HashMap<Integer, HashMap<String, HashSet<String>>> exclude;
+    
+    public RPFMulticastTable(String host) {
+	this.host = host;
+	this.groups = new HashSet<Integer>();
+	this.upstream = new HashMap<Integer, HashMap<String, String>>();
+	this.exclude = new HashMap<Integer, HashMap<String, HashSet<String>>>();
+    }
+    
+    public String getHost() {
+	return host;
+    }
+    
+    public synchronized boolean addGroup(Integer gid) {
+	if(groups.contains(gid))
+	    return false;
+	groups.add(gid);
+	upstream.put(gid, new HashMap<String, String>());
+	exclude.put(gid, new HashMap<String, HashSet<String>>());
+	return true;
+    }
+    
+    public synchronized HashSet<Integer> getGroups() {
+	return groups;
+    }
+    
+    public synchronized boolean hasGroup(Integer gid) {
+	return groups.contains(gid);
+    }
+    
+    public synchronized boolean removeGroup(Integer gid) {
+	return groups.remove(gid);
+    }
+    
+    public synchronized boolean addExclusion(String node, String src, Integer gid) {
+	if(exclude.get(gid) == null) {
+	    exclude.put(gid, new HashMap<String, HashSet<String>>());
+	    //exclude.get(gid).put(src, new HashSet<String>());
+	}
+	if(exclude.get(gid).get(src) == null) {
+	    exclude.get(gid).put(src, new HashSet<String>());
+	}
+	return exclude.get(gid).get(src).add(node);
+    }
+    
+    public synchronized HashSet<String> getExclusions(String src, Integer gid) {
+	return exclude.get(gid).get(src);
+    }
+    
+    public synchronized boolean isExcluded(String node, String src, Integer gid) {
+	if(!exclude.containsKey(gid) || !exclude.get(gid).containsKey(src))
+	    return false;
+	return exclude.get(gid).get(src).contains(node);
+    }
+    
+    public synchronized boolean removeExclusion(String node, String src, Integer gid) {
+	if(!exclude.containsKey(gid) || !exclude.get(gid).containsKey(src))
+	    return false;
+	return exclude.get(gid).get(src).remove(node);
+    }
+    
+    public synchronized boolean removeAllExclusions(String node, Integer gid) {
+	if(!exclude.containsKey(gid))
+	    return false;
+	for(String src : exclude.get(gid).keySet())
+	    exclude.get(gid).get(src).remove(node);
+	return true;
+    }
+}

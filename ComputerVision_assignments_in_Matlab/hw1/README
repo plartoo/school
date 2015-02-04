@@ -1,0 +1,67 @@
+Name: Phyo Thiha
+Assignment #1
+Description: Intro to image manipulation in Matlab
+
+File included: 
+	- one.m (matlab script file)
+	- cheshire_normal.JPG (image taken under normal room light)
+	- cheshire_flash.JPG (image taken with camera flash light)
+	- my_pixinfotool.m (Matlab helper function for showing intensity values)
+
+To run: On command prompt, please type:
+$ matlab -r one
+==============
+
+Explanation:
+
+Given two images of size 4000x3000, this matlab program will:
+
+1. read the images (one taken in normal room light and 
+the other taken with camera flash ON).  
+
+2. resize the images to 10x smaller (i.e. 400x300)
+
+3. save the images in grayscale format as files named
+"grayscale_cheshire_normal.JPG" and "grayscale_cheshire_flash.JPG", 
+respectively.
+
+4. select portion of the images/matrices that contains only the
+cheshire cat, and displays one of them in 400x400 scale.
+(Note: the program could have displayed the second image, but it's 
+not very interesting, so we commented that part out from the code)
+
+5. save the magnified image patches in step 4 as 
+'magnified_grayscale_cheshire_normal.jpg' and 
+'magnified_grayscale_cheshire_flash.jpg', respectively
+
+6. invoke an external function from Matlab documentation to
+see the pixel values interactively for BOTH images, and take the 
+screenshots of the intensity values in particular sections of 
+these two images.  We named them as 'intensity_values_normal.jpg' 
+and 'intensity_values_flash.jpg' in the homework folder.
+
+
+(Observation)
+7. From the above two images obtained in step 6, we look at the 
+intensity values approximately around the same area (i.e. cheshire
+cat's chin+neck+arm area).  We notice that the intensity values seem
+to be higher on average for the image taken with flash ON vs. under 
+normal room light. This makes sense because the intensity values are
+higher for the brighter objects and the flash version of the image 
+surely received more intense light when taken.
+
+
+====Please ignore below====
+
+Notes for Phyo (myself):
+rgb2gray converts RGB values to grayscale values by forming a weighted sum of the R, G, and B components:
+0.2989 * R + 0.5870 * G + 0.1140 * B 
+
+In a true color image of class double, the data values are floating-point numbers in the range [0, 1]. In a true color image of class uint8, the data values are integers in the range [0, 255], and for true color images of class uint16 the data values are integers in the range [0, 65535].
+
+References used:
+http://www.mathworks.com/help/techdoc/ref/imagesc.html
+http://amath.colorado.edu/courses/5720/2000Spr/Labs/Worksheets/Matlab_tutorial/matlabimpr.html
+http://www.mathworks.com/matlabcentral/newsreader/view_thread/132405
+http://www.mathworks.com/help/techdoc/ref/axis.html
+

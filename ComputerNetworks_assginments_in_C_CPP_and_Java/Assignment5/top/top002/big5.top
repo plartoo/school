@@ -1,0 +1,26 @@
+cycle1
+  cycle2 7.0
+  f14 1.0
+end
+
+cycle2
+  cycle1 7.0
+  cycle3 1.0
+  f13 2.0
+end
+
+cycle3
+  cycle2 1.0
+  f14 4.0
+end
+
+f13
+  cycle2 2.0
+  f14 3.0
+end
+
+f14
+  cycle1 1.0
+  cycle3 4.0
+  f13 3.0
+end

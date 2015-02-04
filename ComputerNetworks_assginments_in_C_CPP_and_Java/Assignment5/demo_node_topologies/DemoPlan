@@ -1,0 +1,136 @@
+RPF and CBT test
+join 1 on cycle1 (we are center)
+send 1 111 from cycle1 (but nothing prints out)
+
+Try send 1 111 on f13 (or any other node) and get error for no membership
+
+join 2 by cycle3
+join 2 by cycle1 => Note (for RPF): we are seeing pruning messages on other nodes
+send 2 111 from cycle1 and see on cycle3 (and no other node)
+
+drop 1 on cycle1 
+send 1 111 from cycle1 (and got error because we already dropped)
+send 2 111 from cycle1 and can do that vice versa from cycle2
+Note: the broadcast cost was 5 on either way using lowest path cost
+
+join 3 on cycle2
+join 3 on cycle3
+send 3 cycle1 (from cycle1) => and see nothing (meaning no leak)
+send 2 cycle1 (from cycle1) => still good
+
+Note (for CBT): on f14 we'll see it's being used as part of the path to send/forward messages between
+groups. No other node is being used for pruning messages as in the case of RPF.
+(for RPF) this is not the case, the pruning messages are flying all over
+
+join 2 from f14 and 
+send 2 f14 (see on cycle1 and cycle3 with cost 1 and 4 respectively)
+
+join 3 from f13
+send 3 f13 => see on cycle2 (cost2) and cycle3 (cost 3)
+(for RPF) see pruning messages
+(for CBT) no other node is passed (that is f14 is not used)
+
+SHOW bombard and tell purposes?
+
+
+=====END OF DEMO PLAN; STOP READING BELOW BECAUSE IT IS JUNK=======
+
+
+
+
+
+CBT test
+join 1 on cycle1 (we are center)
+send 1 111 from cycle1 (but nothing prints out)
+
+Try send 1 111 on f13 (or any other node) and get error for no membership
+
+join 2 by cycle3
+join 2 by cycle1
+send 2 111 from cycle1 and see on cycle3
+
+drop 1 on cycle1 
+send 1 111 from cycle1 (and got error because we already dropped)
+send 2 111 from cycle1 and can do that vice versa from cycle2
+
+join 3 on cycle2
+join 3 on cycle3
+send 3 cycle1 (from cycle1) => and see nothing (meaning no leak)
+send 2 cycle1 (from cycle1) => still good
+
+Note: on f14 we'll see it's being used as part of the path to send/forward messages between
+groups. No other node is being used for pruning messages as in the case of RPF.
+
+join 2 from f14 and 
+send 2 f14 (see on cycle1 and cycle3)
+
+join 3 from f13
+send 3 f13 => see on cycle2 (cost2) and cycle3 (cost 3); no other node is passed (that is f14 is not used)
+====
+
+
+
+=======
+
+java mcast/CBTNode 33434 top/top002/big5.top stats
+
+join 1 on cycle1 (we are center)
+bombard 1 111 from cycle1
+join 1 on f13 (no center message since there is already a center)
+bombard 1 111 from f13
+join 1 on cycle3
+bombard 1 111 from cycle1
+bombard 1 111 from cycle3
+
+All broadcasting is done through cycle2 REGARDLESS OF THE SOURCE (not very cost efficient)
+DEBUG [mcast recv]: Got message from group #1 via cycle1, forwarding...
+DEBUG [mcast recv]: Got message from group #1 via f13, forwarding...
+DEBUG [mcast recv]: Got message from group #1 via cycle1, forwarding...
+DEBUG [mcast recv]: Got message from group #1 via cycle3, forwarding...
+
+When it is time to broadcast an actual message, the broadcasting node will forward the message
+to all neighbors, and its neighbors will forward the message to all its neighbors excluding the
+broadcaster. This continues until the message has hit all group members. To drop out of a group,
+a node simply propagates a drop message one hop upstream, and this message will continue to be
+propagated if its upstream neighbor has no other downstream children.
+
+join 2 on f13
+
+Drop 1 from f13 and bombard from cycle1 and cycle2 to show it works (solve nullpointer exception of the thread if time permits).
+
+send 1 1 on f13 and can no longer send because we dropped the group
+but if we bombard 1 1 on f13, we still see messages being passed to cycle1 and cycle3 from f13 via f14
+
+bombard 2 111 from cycle1 and the message appears in f13
+
+join 2 on cycle3 and bombard 2 111
+See payload on f13; cycle2 takes care of forwarding (f14 is eventually dropped?)
+
+f14 is used by both cycle1 and f13 to send group 1 messages
+cycle2 is used by group 2 to send its messages
+=======
+java mcast/RPFNode 33434 top/top002/big5.top stats
+
+log in: cycle1,2,3,f13,f14
+
+join 1 for cycle1 (see message on cycle2, but since it's a group join, pruned)
+join 1 for cycle2 (get message on f14 via f13; "All neighbors pruned from group 1 [Source: cycle2]")
+
+
+bombard 1 236 from cycle1 
+Will see payload on cycle2, not on any other node; Will find that cycle1 message is sent to f14 (with cost of 1.0) and f14 forward it to f13 (cost of 3.0) and f13 forward it to cycle2 (cost of 2) and therefore, the print out "Broadcast cost was 6"
+on cycle2; cycle3 is never reached because it is not involved in shortest parth chosen by group 1
+
+join 2 from cycle3, and the message carried over via cycle2(cost 1)->f13->f14 but everyone eventually pruned it since they don't see any related group #2 neighbors around them.
+
+bombard 1 236 from cycle3; cycle2 and f14 forwards that message, but since f13 has pruned its neighbors AND no other group 2 is around, the message is NOT printed anywhere
+
+bombard 1 236 from cycle1 and still found as earlier;
+
+join 2 from f13 and cycle2; bomboard from cycle3 and we'll see f13 and cycle2 prints the payload
+
+(we can also bombard from cycle1 to group 2 and will see output in cycle2, 3 and f13)
+
+NOTE: We cannot bombard to a group that is not created (will crash the program).
+=============
+

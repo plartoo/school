@@ -1,0 +1,11 @@
+Multicast session ended. Results... 
+	Received Content (bytes): 12800
+	Received Total (bytes): 15328
+	Sent Content (bytes): 14848
+	Sent Total (bytes): 17256
+	Avg Cost from cycle1: 9.0
+	Avg Cost from marcy: 4.0
+	Avg Cost from cycle3: 5.0
+	Avg Cost from sawteeth: 5.0
+	Avg Cost from cycle2: 6.0
+	Avg Cost from nye: 0.0

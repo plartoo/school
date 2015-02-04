@@ -1,0 +1,62 @@
+/*
+ * Authors: Phyo Thiha
+ * CSC456/Assignment 6: README
+ *
+ * Files included:
+ *  - vmscan.c
+ *  - test.c and printmem.c in "/test"
+ *  - README
+ *  - main.c
+ *  - mm_types.h
+ *  - page_ref_timer.h
+ * 
+ */
+
+Part 1
+======
+Our system call is implemented in vmscan.c (tagged with "CS456 HW6 Part 1" 
+comment if you search in it).
+There, we go through each zone in the system and collect a count of 
+the number of pages in &zone->active_list and &zone->inactive_list.
+We also tally how many of each have been referenced as we iterate through zones.
+We also added two global variables in "vmscan.c" to track how many pages 
+are moved from active to inactive, and how many of them in inactive are 
+reclaimed.  These counters are incremented in kernel functions 
+"shrink_active_list" and "shrink_inactive_list", respectively.
+
+To test Part 1, we start QEMU and run our test program as shown in the 
+example below:
+cs2456@cs2456:~/memtest$ ./test 64
+
+This will print the memory statistics twice, one before and one after 
+allocate 64MB of memory.  This will cause pages to be swapped and 
+you can inspect the statistics printed to see if it changes accordingly.
+
+Part 2
+=======
+
+We have made the following changes to implement a reference-counter-based 
+second chance LRU approximation.
+
+1. An atomic counter "page_ref_counter" field is added to the "struct page" 
+inside "mm_types.h".
+
+2. A timer is added in the file "main.c" while initializing the kernel. 
+Whenever the timer expires, it updates the reference counters of all the 
+pages in both active and inactive lists.
+
+3. The functions "shrink_inactive_list" and "shrink_page_list" in "vmscan.c" 
+are modified to incorporate the logic of page reference counter. Instead of 
+only relying on the page reference bit, the eviction logic now relies on 
+the page reference counter value.
+
+4. We have added a new function "page_ref_timer_callback" to manage the 
+timer expire event. Every time the timer expires, this function is called 
+and it adds the reference bit value to the reference counter for each page 
+and finally clears the reference bit.
+
+Additional Comments:
+
+The pages are being allocated and evicted without any errors. 
+However, it is difficult to test the exact page replacement policy in 
+camparison to the second chance LRU.

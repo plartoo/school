@@ -1,0 +1,67 @@
+cycle1
+  cycle2 9.0
+  nye 5.0
+end
+
+cycle2
+  cycle1 9.0
+  seward 4.0
+  marcy 10.0
+end
+
+cycle3
+  marcy 3.0
+end
+
+sawteeth
+  marcy 11.0
+  colden 7.0
+end
+
+nye
+  cycle1 5.0
+  seward 5.0
+  cascade 7.0
+end
+
+seward
+  cycle2 4.0
+  nye 5.0
+  cascade 3.0
+end
+
+marcy
+  cycle2 10.0
+  cycle3 3.0
+  sawteeth 11.0
+  macomb 4.0
+end
+
+colden
+  sawteeth 7.0
+  macomb 5.0
+  blake 4.0
+end
+
+phelps
+  cascade 5.0
+end
+
+cascade
+  nye 7.0
+  seward 3.0
+  phelps 5.0
+  macomb 8.0
+end
+
+macomb
+  marcy 4.0
+  colden 5.0
+  cascade 8.0
+  blake 3.0
+end
+
+blake
+  colden 4.0
+  macomb 3.0
+end

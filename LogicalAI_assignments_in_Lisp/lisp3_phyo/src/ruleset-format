@@ -1,0 +1,7 @@
+(defparameter *rulset-name*
+  (list
+   rule-1
+   rule-2
+   ..
+   rule-n
+   ))

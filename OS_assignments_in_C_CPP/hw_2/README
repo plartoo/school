@@ -1,0 +1,23 @@
+Authors: Phyo and Rahman
+Assignment 2
+
+(Please read description and comments in the "test_files/xxxx.c"
+for how we go about testing these).
+
+The following fields don't change:
+pid, parent_pid, start_time, and uid
+
+These fields, however, changes:
++ state changes if we tested by suspending the process (using Ctrl+Z, fg, bg etc.)
++ nice changes if we renice the process
++ youngest_child_pid changes if the youngest child quits (tested via "test_parent_children.c")
++ younger/older_sibling_pid change if we add/kill childrens (tested via "test_sibling.c")
++ sys_time, cutime, cstime and user_time change as the process lingers on
++ comm changes (tested by running different test files, and checking their "comm" via our system call; this should also change if we call a differnt program inside a program.)
+
+Limitations:
+
+
+1. When we ran the program with some processes related to kernel, often multiple processes had the same start time in seconds, and ended up having the same processes as both younger and older siblings. As an alternative, we iterated through the doubly linked list in two directions: forward and backward. This approach assumes that the younger sibling is the next process in the sibling list, and the older one is the previous one. However, this assumption breaks if there is only one sibling or none.
+
+2. The children cstime & cutime keeps changing. In our tests, cutime was always increasing, but the cstime value was fluctuating non-monotonically.

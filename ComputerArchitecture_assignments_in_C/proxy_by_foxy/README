@@ -1,0 +1,62 @@
+Author: Phyo Thiha
+Last Modified on: 4/2/2012
+
+Files included:
+	- buffer.c(h)	--> handles the buffer content up to 1024 bytes chunks
+	- client.c	--> makes real web requests 
+	- header.c(h)	--> manages header information
+	- Makefile	--> type "$ make" to compile and get the executable
+	- proxy.c	--> main() for "ProxyServer" executable
+	- response.c	--> handles response from the remote web server (not our proxy)
+	- request.c	--> make request and relay content from remote web server to our proxy user
+
+
+Overview: 
+Implementation of a simple multi-threaded webserver that serves GET
+abiding the HTTP 1.1 protocol.
+
+Details:
+When the user launches the ProxyServer, it spawns a pthread and runs "start_client",
+which is defined in "client.c".  This takes care of resolving the DNS info and 
+making the actual web request along with reading and relaying/forwarding the content to 
+our proxy client. "client.c" depends on "request.c" and "response.c", which take 
+care of request and response buffer handling as well as all other error handling.
+"header.c" forwards the header information to the proxy client.
+
+I wrote down as many comments as I could in the code files.  But I'm sure the code
+itself (and function names) will tell the story pretty well.
+
+To Compile:
+$ make
+
+To Test:
+
+1) Simple test
+Launch the ProxyServer by:
+$./ProxyServer <port_you_choose>
+
+Then create a Telnet instance:
+$ telnet cycle1.csug.rochester.edu <port_you_chose>
+ GET http://www.google.com HTTP/1.1<enter>
+ host: www.google.com<enter>
+ <enter>
+
+[reponse from proxy server will flow in]
+
+2) Multiple connection test
+For multiple connection testing, I followed Professor Shen's recommendation on 
+the lab's page and created two connection with Chrome and Firefox browsers via 
+the proxy server (to Google).  It handled them without error.
+
+3) Test other types of media forwarding, I tried downloading the image from
+<http://i-love-cartoons.us/snags/clipart/Looney-Toons/Bugs-Bunny/Bugs-Bunny-Neener.jpg>
+<http://www.imdb.com/character/ch0000574/>
+using the two (Chrome and Firefox) instances described above.
+
+
+Please email me with questions if you have any trouble compiling/running this.
+<pthiha@cs.rochester.edu>
+
+
+
+

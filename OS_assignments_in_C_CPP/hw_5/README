@@ -1,0 +1,50 @@
+/* 
+ * Author: Phyo Thiha and Yu Zhong
+ * Date: November 22, 2011
+ *
+ * CSC 456, Assignment 5
+ * 
+ */
+Files included;
+- sched_gwrr.c --> our implementation of GWRR scheduler
+- sched_fair.c --> modified from the existing kernel file
+- sched.h and sched.c --> modified from the existing kernel files
+
+- gwrr.c --> test program (not used) that collects cpu usage
+- loop.c --> test program (used) to spend cpu cycles
+- stats.rb --> Ruby program to parse the output file from kernel
+		 to prove that our scheduler works (example output below)
+- output.txt --> example output file from kernel (to prove that our scheduler works)
+
+Percentage of total CPU time alloted for Groups
+1001 => 59.9861942015647
+1003 => 20.041417395306
+1005 => 20.041417395306
+
+Percentage of total CPU time alloted for Processes
+2324 => 20.041417395306
+2325 => 10.0552231937414
+2326 => 30.0046019328118
+2327 => 10.0092038656236
+2328 => 30.0046019328118
+
+Comments:
+Place "sched.c", "sched_fair.c" and "sched_gwrr.c" under "linux-2.6.26.5/kernel/"
+Place "sched.h" under "linux-2.6.26.5/include/linux".
+Boot QEMU and copy over "loop.c" and follow the testing procedure as mentioned below.
+
+Our test proceduer is as follows: 
+1. Log in with five different users, each running "loop.c" program.
+2. Run set_weight to set the group weights.
+3. Run set_scheduler to change those infinite loop processes' scheduler to GWRR.
+4. Run set_output to log scheduling information.
+5. Analyze log file with "stats.rb" to get cpu usage of each process.
+
+In addition to the two system calls to set and get weight, another 
+system call was added to output GWRR scheduler log as "output.txt" file.
+That output file is then fed into "stats.rb" file to parse, aggregate and 
+calculate the CPU time allocated to each process and group.
+
+We also updated line 1518 of "linux-2.6.26.5/kernel/sched_fair.c (updated 
+file included in this folder)" link our scheduler with kernel.
+

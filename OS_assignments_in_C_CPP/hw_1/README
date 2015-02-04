@@ -1,0 +1,345 @@
+/* 
+ * Author: Phyo Thiha
+ * Date: September 02, 2011
+ *
+ * For: CSC 456, Assignment 1
+ * 
+ */
+
+(NOTE: 
+1. To help our TA, I have compiled the steps that I took to test this shell under the section below, named "Testing Procedures and Results".
+Please feel free to take a look and verify the way I tested this shell.
+
+2. I didn't have time to complete the pipe implementation.
+The problem was partly due to the way I wrote the code to parse the original command; it wasn't using the delimiter '|'
+to distinguish between subprocesses from the jobs.
+By the time I realized this, the code has gone beyond the point of massively-tangled spaghetti state to fix so that pipe implementation could be cleanly introduced.
+However, I wrote in some pipe implementation and commented them out in case I ever wanted to revisit this homework.
+
+3. Final note is about suspending jobs via "ctrl-z".
+It doesn't seem to work when tested with the bash script that I wrote.
+(Although at one point in time, it worked occassionally; I even wrote down the notes below to record that. See line 300-320)
+Maybe it's because the stdout from the bash script isn't flushed out correctly or because "wait_for_fg" isn't waiting the fg process correctly.
+I couldn't debug that despite trying to do so for a couple of hours.)
+
+Below is the write-up that'll help our TA to test my code:
+
+PartI
+======
+File: part_1/proc_parse.c
+
+To compile: please go to /part_1 and type
+ $ make
+
+To run: please go to /part_1 and type
+ $ ./proc_parse
+OR
+ $ ./proc_parse <INT read_rate> <INT print_rate>
+
+Explanation:
+
+Without the arguments, "proc_parse.c" parses the
+ * 	- Processor type(s)
+ * 	- Kernel version
+ * 	- The amt. of memory configured into the computer
+ * 	- Amt. of time since the system was last booted
+
+Comments: For "Processor type(s)", I'm reporting all different cores that are listed in "/proc/cpuinfo".
+
+
+With the arguments, "proc_parse.c" will print lists of following values based on specific interval.
+ * 	- % of CPU time in user mode, system mode, and % of time CPU is idle
+ * 	- the amt. and % of available/free memory
+ * 	- rate of disk read/write (in # sectors/sec)
+ * 	- rate of context switches in the kernel (# per sec)
+ * 	- rate of process creations in the system (# per sec)
+
+Comments: For "CPU" time and the rate of disk read/write, I'm reporting the aggregate values (that is the value listed next to "cpu" and "sda".  Although the CPU time seems to be the correct aggregate of the rest of the "cpu*" data, the supposedly aggregate value of "sda" is NOT equal to the sum of the other "sda*" in the drive (albeit close).  According to google research and what Li Lu (the TA of the course), the "sd" is means a specific kind of device connected via SCSI/SATA protocol/cables on the motherboard; in contrast, "hd" devices are the ones (used to be) connected via IDE cables.  The "a", "b", .. letters (according to google, it could go up to "d" in some systems) means whether it's primary or slave device.  Therefore, "sda" means the primary disk on the system and "sda0", "sda1", "sda2", etc. represents the partitions of that primary disk.
+
+On "cycle*" machine(s) of URCS dept., I couldn't find any "hda" mounted devices and therefore, am only reporting "sda" in the code.  I've discussed this with Li (the TA) and he suggested me to write this comment in the README.
+
+Test Procedures and Results
+============================
+
+PART I
+=======
+[pthiha@cycle1 part_1]$ ./proc_parse
+
+CPU Type(s):
+==============
+model name      : Intel(R) Xeon(TM) CPU 3.00GHz
+model name      : Intel(R) Xeon(TM) CPU 3.00GHz
+model name      : Intel(R) Xeon(TM) CPU 3.00GHz
+model name      : Intel(R) Xeon(TM) CPU 3.00GHz
+model name      : Intel(R) Xeon(TM) CPU 3.00GHz
+model name      : Intel(R) Xeon(TM) CPU 3.00GHz
+model name      : Intel(R) Xeon(TM) CPU 3.00GHz
+model name      : Intel(R) Xeon(TM) CPU 3.00GHz
+
+Kernel Version:
+==============
+Linux version 2.6.40.3-0.fc15.i686.PAE (mockbuild@x86-16.phx2.fedoraproject.org) (gcc version 4.6.0 20110603 (Red Hat 4.6.0-10) (GCC) ) #1 SMP Tue Aug 16 04:17:30 UTC 2011
+
+Total amt. of memory (in KB):
+==============
+MemTotal:        4126096 kB
+
+Amt. of time since last boot (in seconds):
+==============
+1267154.31 955635.78
+
+
+// testing proc_parse With arguments for print and read rates
+//
+// first compile and run the test write/read file in the background
+// this program will read/write certain number of lines to a file, sleep 5 secs and repeat that 20 times!
+[pthiha@cycle1 part_1]$ g++ test_write.cpp -o test_write
+[pthiha@cycle1 part_1]$ ./test_write&
+
+// then try proc_parse program
+[pthiha@cycle1 part_1]$ ./proc_parse 2 10
+
+=======================
+Percentage of (collective) CPU time-
+user mode: 2.38
+system mode: 0.32
+idle: 94.66
+
+Amount and percentage of available (or free) memory in kB
+amount: 3098736
+percentage free: 75.10
+
+Rate (number per second) of disk read/write in the system:
+sectors read: 0
+sectors written: 26
+
+Rate (number per second) of context swtiches:
+51
+
+Rate (number per second) of processes:
+0
+
+=======================
+
+=======================
+Percentage of (collective) CPU time-
+user mode: 2.38
+system mode: 0.32
+idle: 94.66
+
+Amount and percentage of available (or free) memory in kB
+amount: 3098368
+percentage free: 75.09
+
+Rate (number per second) of disk read/write in the system:
+sectors read: 0
+sectors written: 0
+
+Rate (number per second) of context swtiches:
+77
+
+Rate (number per second) of processes:
+1
+
+=======================
+
+NOTE:: The sectors read is always 0, as far as I observed.  I am certain that my program is picking field #3 (as confirmed with Li, our TA and Google search) in the result of 'cat /proc/diskstats'.  Inspecting "cat /proc/diskstats" manually, I found that :
+[pthiha@cycle1 ~]$ cat /proc/diskstats | grep 'sda '
+   8       0 sda 4567091 145817 1531331516 49793391 7737125 3515301 4002002572 1953950542 0 57356997 2003723028
+[pthiha@cycle1 ~]$ cat /proc/diskstats | grep 'sda '
+   8       0 sda 4567091 145817 1531331516 49793391 7737125 3515301 4002002572 1953950542 0 57356997 2003723028
+
+However, it seems like this field rarely changes with the machines that I was logged on (cycle1.cs.rochester.edu).  Could this be because this is "sda" device (solid state drives, maybe??) behaves something differently from regular "hda" (regular hard disk connected with IDE)?
+
+
+PART II
+========
+
+// compile
+[pthiha@cycle1 hw_1]$ make
+g++    -c -o shell.o shell.cpp
+g++  shell.o -o shell
+
+// run
+[pthiha@cycle1 hw_1]$ ./shell
+
+// exit with junk arguments shouldn't work
+MarioShell$ exit blah blah
+exit: Expression Syntax.
+
+// exit with "space" character should still exit properly
+MarioShell$ exit
+
+// exit with no "space" character exits properly
+[pthiha@cycle1 hw_1]$ ./shell
+MarioShell$ exit
+
+// test cd with no arguments (cout is turned on to help TA grading)
+[pthiha@cycle1 hw_1]$ ./shell
+MarioShell$ cd
+Before: The current working directory is /home/vax5/u53/pthiha/fall_2011/cs_456/hw_1
+After: The current working directory is /home/vax5/u53/pthiha/fall_2011/cs_456/hw_1
+
+// change into CURRENT directory
+MarioShell$ cd .
+Before: The current working directory is /home/vax5/u53/pthiha/fall_2011/cs_456/hw_1
+After: The current working directory is /home/vax5/u53/pthiha/fall_2011/cs_456/hw_1
+
+// cd with junk arguments returns expected error message and doesn't perform any action
+MarioShell$ cd blah blah
+Before: The current working directory is /home/vax5/u53/pthiha/fall_2011/cs_456/hw_1
+cd: Too many arguments.
+After: The current working directory is /home/vax5/u53/pthiha/fall_2011/cs_456/hw_1
+
+// try going to parent directory
+MarioShell$ cd ..
+Before: The current working directory is /home/vax5/u53/pthiha/fall_2011/cs_456/hw_1
+After: The current working directory is /home/vax5/u53/pthiha/fall_2011/cs_456
+
+// go back into previous directory
+MarioShell$ cd hw_1
+Before: The current working directory is /home/vax5/u53/pthiha/fall_2011/cs_456
+After: The current working directory is /home/vax5/u53/pthiha/fall_2011/cs_456/hw_1
+
+// finally exit
+MarioShell$ exit
+[pthiha@cycle1 hw_1]$
+
+
+// This is more hardcore way to test "fg" and "bg"
+[pthiha@cycle1 hw_1]$ ./shell
+// run as a fg process
+MarioShell$ cat test.txt
+i'm secondary
+i'm piggy
+
+// run as fg by feeding more than one argument
+MarioShell$ cat test.txt test.txt
+i'm secondary
+i'm piggy
+
+i'm secondary
+i'm piggy
+
+// run as bg by feeding more than one argument
+MarioShell$ cat test.txt test.txt &
+MarioShell$ i'm secondary
+i'm piggy
+
+i'm secondary
+i'm piggy
+
+// try unix calls via "execvp"
+MarioShell$ ps
+  PID TTY          TIME CMD
+10054 pts/23   00:00:00 shell
+10067 pts/23   00:00:00 ps
+26417 pts/23   00:00:00 csh
+MarioShell$ ls
+cshell  cshell.c  incremental_steps.txt  makefile  part_1  README  script.sh  shell  shell.cpp  shell.o  sh-skeleton.c  test.txt
+
+// yes, I did implemented 'pwd' :)
+MarioShell$ pwd
+/home/vax5/u53/pthiha/fall_2011/cs_456/hw_1
+MarioShell$ cd ..
+MarioShell$ pwd
+/home/vax5/u53/pthiha/fall_2011/cs_456
+MarioShell$ cd hw_1
+MarioShell$ pwd
+/home/vax5/u53/pthiha/fall_2011/cs_456/hw_1
+MarioShell$ cd
+MarioShell$ pwd
+/home/vax5/u53/pthiha/fall_2011/cs_456/hw_1
+
+// "script.sh" loops for a few thousands times
+// the goal is to use that as a check against putting jobs in the background
+
+// run normally. finished in a few seconds
+MarioShell$ ./script.sh
+DONE running script
+// run as bg.  finished successfully in a few seconds (notice the Shell prompt returned right away)
+MarioShell$ ./script.sh &
+MarioShell$ ./script.sh
+DONE running script
+
+// run again in the background and check with 'ps' and 'jobs' respectively
+// this time, program finished successfully
+MarioShell$ ./script.sh &
+MarioShell$ ps
+  PID TTY          TIME CMD
+10054 pts/23   00:00:00 shell
+15119 pts/23   00:00:00 script.sh
+15913 pts/23   00:00:00 ps
+26417 pts/23   00:00:00 csh
+MarioShell$ jobs
+[1] (15119) Running ./script.sh
+MarioShell$ DONE running script
+
+// this time use "ctrl-z" to suspend
+MarioShell$ ./script.sh
+MarioShell$ ps
+  PID TTY          TIME CMD
+10054 pts/23   00:00:00 shell
+20623 pts/23   00:00:00 script.sh
+20812 pts/23   00:00:00 ps
+26417 pts/23   00:00:00 csh
+^Z
+MarioShell$ jobs
+[1] (20623) Stopped ./script.sh
+
+// use 'ctrl-z' to suspend, and fg <job_id> to resume
+MarioShell$ ./script.sh
+// please make sure you give enough time (~2-3secs) for the shell to start
+// running it before pressing 'ctrl-z'
+^ZMarioShell$ fg 1
+FG: bring job id: 1 to foreground
+sending kill SIGCONT to pid: 7595
+FG should be set to state 3: 3
+DONE running script
+Did wake up fg pid: 0
+
+// use 'ctrl-z' to suspend, and bg <job_id> to run it in the background
+[pthiha@cycle1 hw_1]$ ./shell
+MarioShell$ ps
+  PID TTY          TIME CMD
+13942 pts/1    00:00:00 shell
+13943 pts/1    00:00:00 ps
+18364 pts/1    00:00:00 csh
+18419 pts/1    00:00:32 find
+MarioShell$ ./script.sh
+// please give about 2-3 seconds for the program to start calling the signal
+// before pressing 'ctrl-z'
+^ZMarioShell$ jobs
+[1] (13970) Stopped ./script.sh
+MarioShell$ bg 1
+BG: put job id: 1 to background
+sent kill SIGCONT to pid: 13970
+set the job to BG state: 3
+MarioShell$ jobs
+[1] (13970) Running ./script.sh
+MarioShell$ DONE running script
+MarioShell$
+
+// test 'ctrl-c' to kill process
+[pthiha@cycle1 hw_1]$ ./shell
+MarioShell$ jobs
+// 1. test with just one foreground process
+MarioShell$ ./script.sh
+^Csending SIGINT to pid: 10130
+MarioShell$ jobs
+MarioShell$ ps
+  PID TTY          TIME CMD
+10126 pts/1    00:00:00 shell
+11415 pts/1    00:00:00 ps
+18364 pts/1    00:00:00 csh
+
+// 2. test with a background process running
+// this should not kill the background process
+// and return correct error message as shown below
+MarioShell$ ./script.sh &
+MarioShell$ jobs
+[1] (11450) Running ./script.sh
+MarioShell$ ^Cno fg process to kill
+
+
+

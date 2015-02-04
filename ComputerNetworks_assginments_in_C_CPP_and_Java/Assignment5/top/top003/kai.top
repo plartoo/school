@@ -1,0 +1,38 @@
+cycle1
+  cycle2 3.0
+  f13 5.0
+end
+
+cycle2
+  cycle1 3.0
+  cycle3 4.0
+  f13 3.0
+  f14 6.0
+end
+
+cycle3
+  cycle2 4.0
+  f14 5.0
+end
+
+f13
+  cycle1 5.0
+  cycle2 3.0
+  f15 4.0
+end
+
+f15
+  f13 4.0
+  f14 1.0
+  f16 3.0
+end
+
+f14
+  cycle2 6.0
+  cycle3 5.0
+  f15 1.0
+end
+
+f16
+  f15 3.0
+end

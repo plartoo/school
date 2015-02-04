@@ -1,0 +1,34 @@
+Submission for Lisp4 project
+Due 5:00M, Friday 12/07/12
+Phyo Thiha
+
+Files included
+===============
+- phyo_src.lisp -->	Implementation of code to detect inconsistency in the knowledge base
+- helper.lisp -->	Contains for helper functions for unit testing and other purposes
+- phyo_test.lisp -->	Contains test cases for the assignment (needs "helper.lisp")
+- src/ --> 		Folder containing source and compiled files of ttt
+
+To run the unit tests, please load the file in ACL as below
+: (load "phyo_test")
+and check the output that are deduced from the facts and rules entered 
+in the test file. 
+
+Notes/Description
+=================
+(Note to Adam: if the STDOUT is too noisy, please set verbose to nil.)
+
+I have implemented an extension of Lisp 3 assignment. 
+Now, the knowledge base (KB) can detect contradictory facts/rules.
+If the added knowledge is inconsistent with those that already are entered, 
+the KB will add the negation of it. This is accomplished by creating four 
+hash tables--two each for new and old rules/facts--and using them as 
+cross-references in checking the newly added knowledge (rule/fact).
+I also made sure the STDOUT's from the tests are readble/understandable 
+to the TA.
+
+I tried to write the code as modularly as possible. I also named the functions 
+so that the names let the reader/grader know the intended purpose of those functions.
+Please read the comments that I made for each function in the "phyo_src.lisp" file for 
+explanation of their functionalities. Thank you.
+

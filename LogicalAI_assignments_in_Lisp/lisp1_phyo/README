@@ -1,0 +1,25 @@
+Submission for Lisp1 project
+Due 4:59PM, Monday 10/1/12
+Phyo Thiha
+
+
+- phyo_src.lisp --> Implementation of match-expr function specified in the assignment
+- test-helper.lisp -- Lisp unit testing framework from Peter Seibel's Practical Common Lisp.
+- phyo_test.lisp --> Contains test cases for functions in phyo_src.lisp (needs test-helper.lisp)
+
+
+To run the tests, please load the file:
+   (load "phyo_test")
+
+And invoke a whole suite of tests by typing:
+   (test-all)
+
+to test all the functions.
+
+Note:
+I tried to write the code as modularly as possible, coupled with unit tests
+for each helper-fuctions. I also named the functions such that their names let
+the reader/grader know the intended purpose of those functions. Please read
+the comments that I made along the way in the "phyo_src.lisp" file for 
+big-picture explanation of their functionalities. Thank you.
+

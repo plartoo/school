@@ -1,0 +1,34 @@
+Submission for Lisp3 project
+Due 11:04AM, Tuesday 11/06/12
+Phyo Thiha
+
+Files included
+===============
+- phyo_src.lisp -->	Implementation of functions specified in the assignment
+- helper.lisp -->	Helper module for unit testing and other helper functions
+- phyo_test.lisp -->	Contains test cases for the assignment (needs "helper.lisp")
+- src/ --> 		Folder containing source and compiled files of ttt
+
+To run the unit tests, please load the file in ACL as below
+: (load "phyo_test")
+and check the output that are deduced from the facts and rules entered 
+in the test file. 
+
+Notes
+=====
+Since I set the verbosity level to be ON, it prints out contents
+of the hash table, which cloggs up the terminal output (STDOUT).
+The deduced facts will be shown with the preceding "=> " in the output.
+
+I suggest the grader (Adam) to comment out different/irrelevant tests in 
+"phyo_test.lisp" to see the FULL relevant output for individual test 
+he wants to focus on grading. That way, the grader can compare the output
+he sees in STDOUT with the expected outputs that I've written out 
+in "phyo_test.lisp". If there is problem running the unit tests, please 
+recompile the ttt source files in folder named, "src".
+
+I tried to write the code as modularly as possible. I also named the functions 
+so that the names let the reader/grader know the intended purpose of those functions.
+Please read the comments that I made along the way in the "phyo_src.lisp" file for 
+explanation of their functionalities. Thank you.
+

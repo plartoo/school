@@ -1,0 +1,26 @@
+CSC457 Project 3 Reliable Data Transfer
+Phyo Thiha
+===============================================================================
+This README is a brief rundown as to how to run/compile the files submitted.
+For more explanation, please refer to "WriteUp.pdf".
+
+Files included:
+rdt_sender.cc	- The sender side functions.
+rdt_receiver.cc	- The receiver side functions.
+MyMacros.h	- My defined macros. This is included in rdt_sender.cc and rdt_receiver.cc
+README		- This file
+WriteUp.pdf	- Write up for this project
+
+How to compile:
+I used the default makefile provided in 
+/u/cs457/Resources_fall2011/assignment3/:
+$ make clean
+$ make
+
+How to run:
+usage: rdt_sim <sim_time> <mean_msg_arrivalint> <mean_msg_size> <outoforder_rate> <loss_rate> <corrupt_rate> <tracing_level>
+
+Known Limitations:
+Packet corruption rate set too high can cause problems.
+
+

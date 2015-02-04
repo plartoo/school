@@ -1,0 +1,133 @@
+CSC 457/Assignment#1
+Name - Phyo Thiha
+Date Modified - Jan 31, 2013
+Description: README for proxy server implementation
+
+Files Included:
+ProxyServer.cpp - Core of the proxy server program.
+ProxyServer.h - The header for the file above. This contains a struct definition.
+Makefile - Makefile for compiling the code.
+README - This file.
+
+Code Location: under "/localdisk/phyo_net/Assignment1" 
+at "f13.cs.rochester.edu"
+===============================================================================
+
+To compile-
+$ make
+
+To run/test - 
+1. Run the program on the test machine (one of CS dept. machines)
+$ ./ProxyServer <port_number_that_is_not_used>
+To determine port numbers that are used, you can type:
+$ netstat -vatn
+and see which ones are occupied at the moment. Choose one that is above 1024 and is NOT
+occupied (I'm sure TA knows this, but in case someone reads this document as well)
+
+2. Please open firefox and under Preferences > Advanced > Network > Connection
+ > Settings, enter server information. In my test cases, I used 
+"f13.cs.rochester.edu" with port "41111", so I entered those in the "Manual
+proxy configuration".
+
+3. Then enter any website address you wish to visit/browse and see the server 
+in action!
+
+Alternatively, you could use "telnet" as mentioned in assignment webpage.
+For example,
+1. Run the proxy server
+$./ProxyServer 41111
+
+2. Run telnet on the proxy server
+$ telnet f13.cs.rochester.edu 41111<enter>
+GET http://www.google.com HTTP/1.1<enter>
+// the page will start being loaded here
+Connection: close<enter> 
+// or the connection will be killed after 5000ms because I set 
+// polling wait time to be that long
+
+Sites tested:
+http://www.reddit.com/
+http://www.google.com/
+http://cs.rochester.edu/
+http://cs.rochester.edu/~pthiha/
+http://soccernet.espn.go.com/team?id=360&cc=5901
+
+Description of Design 
+======================
+The objective of this assignment is to make a proxy server, but only has 
+to support the GET request. If the running proxy gets a request from a 
+browser, then it should forward the message to the web server, receive 
+the response from the web server, and send that back to the web browser. 
+Below is the (poor man's version of) graphical flow of the program.
+
+ Step1		Step2		Step3		Step4
+ =====		=====		=====		=====
+
+ Browser	Browser		Browser		Browser
+   ||						   /\
+   || GET request				   ||
+   \/						   ||
+ *Proxy*	*Proxy*		*Proxy*		*Proxy*
+   		  ||		  /\
+		  || GET request  || RESPONSE
+		  \/		  ||
+  Server at	Server at	Server at	Server at
+  destination	destination	destination	destination
+
+The flow of the code is pretty much as suggested in the assignment 
+handout/webpage. I used "pthread" to spawn new connections to the proxy.
+Each pthread instance will call the method, "serve_client", which will
+instantiate a socket instance, check if the request is valid (our proxy 
+only permits GET for this assignment), connect to the destination server,
+put things/results in "receivebuffer" and relay it to the user that is
+requesting the content. Essentially, "server_client" is the backbone of
+my implementation. 
+
+Last but not least, I did NOT implement extra credit work which requires
+the program to create persistent connection. I close the connection by 
+adding "Connection: close" in the request sent to get rid of HTTP1.1's
+persistent connection. I also close the connection automatically if it
+has been lingering for more than 5 seconds(5000ms).
+
+Known Facts/Limitations
+=======================
+I hard-coded the buffer size of the proxy server to "MAXLENGTH 70000" (bytes).
+It can be extended if we are to handle very large pages or make the buffer
+length dynamic, but I assume this is not the requirement of the assignment 
+and should be OK with most of the test cases we're interested in. Please 
+don't be surprised if you try pages that requires bigger buffer size
+and the proxy program buffer overflows ;)
+
+Image loading may take a while to finish. That means if you test with 
+Firefox browser, you'll see busy icon spinning for quite a while.
+But rest assured, it'll eventually finish loading the page. I think it's
+because the images are retrieved from different server location and each 
+has to be received by my proxy code.
+
+I also searched on Google about what might be causing this delay, but
+it seems nobody has answered related question to satisfying degree.
+My guess is that for the ensuing requests, after the first GET request,
+sent to the destination server, my program cannot put "Connection: close"
+in them. For example, we go to "www.espn.com", the browser will make more 
+than one GET requests to get all resources such as images and so on.
+That means, except the first GET request to "http://www.espn.com", the rest
+of the GET requests such as "http://www.espn.com/zMAGMh8FoMcYpc0b.jpg", my
+program does NOT insert "Connection: close" in those requests. Therefore,
+these requests eventually hold down the downloading of resources from 
+the later requests.
+
+As a workaround, my program looked for HTTP header to see if images 
+will be loaded. If so, I decrease the wait_time (polling time) to
+2000ms and quit the connection (that is, kill the thread that
+is responsible for receiving that image) if no new information is 
+received during that duration. That makes the page loading process to be
+completed eventually. In normal situations, I would wait NORMAL_WAIT 
+(5000ms) before terminating the connection. 
+
+As long as we are patient, the pages which has a lot of images will finish
+loading eventually. When the page seems taking a long time to load, 
+a simple solution/work around is to just retry/reload the page and it 
+usually works. :)
+
+Please feel free to contact me with questions regarding the
+assignment at: <pthiha@cs.rochester.edu>

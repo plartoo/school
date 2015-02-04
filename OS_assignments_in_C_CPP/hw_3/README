@@ -1,0 +1,227 @@
+/*
+ * Author: Phyo Thiha
+ * 
+ * Description: README for Assignment 3
+ *
+ */
+
+To compile all the programs, please type:
+$ make
+
+Note: The results shown below are all obtained from running on "cycle1.cs.rochester.edu"
+
+Task#1
+======
+If 'N' represents the number of time we want the minimum function to be called
+before averaging the time cost, please run the program as below:
+$ ./function_call <N>
+
+Example results:
+[pthiha@cycle1 hw_3]$ ./function_call 10000000
+Avg. secs per minimum function call over 10000000 iterations: 0.000000072
+[pthiha@cycle1 hw_3]$ ./function_call
+Avg. secs per minimum function call over 1000 iterations: 0.000000073
+
+Task#2
+======
+If 'N' represents the number of time we want the minimum function to be called
+before averaging the time cost, please run the program as below:
+$ ./system_call <N>
+
+Example results:
+[pthiha@cycle1 hw_3]$ ./system_call
+Avg. secs per minimum system call over 1000 iterations: 0.000000081
+[pthiha@cycle1 hw_3]$ ./system_call 10000
+Avg. secs per minimum system call over 10000 iterations: 0.000000078
+
+Observation: If we compare function_call and system_call, 
+the former is consistently (albeit slightly) faster than the latter.
+[pthiha@cycle1 hw_3]$ ./system_call 1000000
+Avg. secs per minimum system call over 1000000 iterations: 0.000000075
+[pthiha@cycle1 hw_3]$ ./function_call 1000000
+Avg. secs per minimum function call over 1000000 iterations: 0.000000072
+
+
+Task#3
+======
+If 'N' represents the number of time we want the minimum function to be called
+before averaging the time cost, please run the program as below:
+$ ./context_switch <N>
+
+Example results:
+[pthiha@cycle1 hw_3]$ ./context_switch
+Average secs per context switch: 0.000033304
+[pthiha@cycle1 hw_3]$ ./context_switch 100000
+Average secs per context switch: 0.000033354
+
+Observation: Significantly longer than the time cost of the function and the system calls.
+
+Task#4a.
+========
+If 'N' represents the number of pthreads to be generated and 'input_file' represents
+a file that contains the integer N, followed by (N2-N)/2 integers that constitute 
+the upper triangle of the adjacency matrix of the graph (see 'test1' and 'test2' for example),
+please run the program as below:
+$ ./pthreads_tsp <input_graph_of_trajectory> <num_of_threads_to_be_created>
+
+Example results on "cycle1.cs.rochester.edu", using 8-core Intel(R) Xeon(TM) CPU 3.00GHz:
+In increasing number of threads spawned,
+
+[pthiha@cycle1 hw_3]$ ./pthreads_tsp test1 1
+Total time (in microsecond):            4258
+Total wait-time (in microsecond):       721
+Average wait-time (in microsecond):     4
+Best path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./pthreads_tsp test1 2
+Total time (in microsecond):            5557
+Total wait-time (in microsecond):       1637
+Average wait-time (in microsecond):     10
+Best path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./pthreads_tsp test1 4
+Total time (in microsecond):            7692
+Total wait-time (in microsecond):       6964
+Average wait-time (in microsecond):     41
+Best path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./pthreads_tsp test1 5
+Total time (in microsecond):            6902
+Total wait-time (in microsecond):       9767
+Average wait-time (in microsecond):     62
+Best path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./pthreads_tsp test1 7
+Total time (in microsecond):            8505
+Total wait-time (in microsecond):       14278
+Average wait-time (in microsecond):     89
+Best path (cost: 15):   0       1       2       3       4       5
+
+Observation: As expected, if we increase the number of threads run concurrently,
+the average wait-time increases.  Surprisingly (that is, contraty to our expectation),
+the total CPU cycle time (measured in microsecond) seem to increase proportionately with
+the number of threads used (please see the result below for less messier comparison).  
+We expected it to decrease as we are utilizing more threads.  This could be due to more 
+context switching neccessary by increased number of threads.
+
+
+[pthiha@cycle1 hw_3]$ ./pthreads_tsp test1 4
+Total time (in microsecond):            7024
+Total wait-time (in microsecond):       4991
+Average wait-time (in microsecond):     31
+Best path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./pthreads_tsp test1 4
+Total time (in microsecond):            8198
+Total wait-time (in microsecond):       7445
+Average wait-time (in microsecond):     44
+Best path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./pthreads_tsp test1 2
+Total time (in microsecond):            5946
+Total wait-time (in microsecond):       1847
+Average wait-time (in microsecond):     11
+Best path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./pthreads_tsp test1 2
+Total time (in microsecond):            5821
+Total wait-time (in microsecond):       1804
+Average wait-time (in microsecond):     11
+Best path (cost: 15):   0       1       2       3       4       5
+
+Task#4b.
+========
+If 'N' represents the number of pthreads to be generated and 'input_file' represents
+a file that contains the integer N, followed by (N2-N)/2 integers that constitute 
+the upper triangle of the adjacency matrix of the graph (see 'test1' and 'test2' for example),
+please run the program as below:
+$ ./busywait_tsp <input_graph_of_trajectory> <num_of_threads_to_be_created>
+
+Example results on "cycle1.cs.rochester.edu", using 8-core Intel(R) Xeon(TM) CPU 3.00GHz:
+In increasing number of threads spawned,
+
+[pthiha@cycle1 hw_3]$ ./busywait_tsp test1 3
+Total time (in microsecond):            5145
+Total wait-time (in microsecond):       3597
+Average wait-time (in microsecond):     23
+Best Path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./busywait_tsp test1 3
+Total time (in microsecond):            5184
+Total wait-time (in microsecond):       3407
+Average wait-time (in microsecond):     21
+Best Path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./busywait_tsp test1 3
+Total time (in microsecond):            5341
+Total wait-time (in microsecond):       3802
+Average wait-time (in microsecond):     23
+Best Path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./busywait_tsp test1 1
+Total time (in microsecond):            4268
+Total wait-time (in microsecond):       767
+Average wait-time (in microsecond):     5
+Best Path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./busywait_tsp test1 1
+Total time (in microsecond):            4185
+Total wait-time (in microsecond):       717
+Average wait-time (in microsecond):     4
+Best Path (cost: 15):   0       1       2       3       4       5
+
+Observation: As in the case of pthreads (task 4.a), we see that total 
+CPU cycles and average wait-time gets larger as we increase the number 
+of threads used.
+
+For comparison, we also run the 'pthreads' version vs. 'busywait'
+with thread value of 3 (actually, we ran with thread == 1 and 2 as well,
+but the results pointed to the same conclusion discussed below):
+
+// three consecutive busywait tries
+[pthiha@cycle1 hw_3]$ ./busywait_tsp test1 3
+Total time (in microsecond):            5223
+Total wait-time (in microsecond):       3359
+Average wait-time (in microsecond):     21
+Best Path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./busywait_tsp test1 3
+Total time (in microsecond):            4820
+Total wait-time (in microsecond):       3214
+Average wait-time (in microsecond):     20
+Best Path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./busywait_tsp test1 3
+Total time (in microsecond):            5242
+Total wait-time (in microsecond):       3525
+Average wait-time (in microsecond):     21
+Best Path (cost: 15):   0       1       2       3       4       5
+
+// three consecutive pthreads tries
+[pthiha@cycle1 hw_3]$ ./pthreads_tsp test1 3
+Total time (in microsecond):            7212
+Total wait-time (in microsecond):       3640
+Average wait-time (in microsecond):     23
+Best path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./pthreads_tsp test1 3
+Total time (in microsecond):            7554
+Total wait-time (in microsecond):       3861
+Average wait-time (in microsecond):     24
+Best path (cost: 15):   0       1       2       3       4       5
+
+[pthiha@cycle1 hw_3]$ ./pthreads_tsp test1 3
+Total time (in microsecond):            7829
+Total wait-time (in microsecond):       3975
+Average wait-time (in microsecond):     24
+Best path (cost: 15):   0       1       2       3       4       5
+
+Observation: As we noticed, using 'pthreads' eats more CPU cycles (that is, total time)
+than that using busywaiting approach.  Moreover, the average wait-time performance is 
+slightly better in pthreads case than that in busywait.  This points to our (probably 
+premature and not-so-robust) conclusion that using pthreads library might cost a few 
+more CPU time as well as increase the average wait-time compared to using simplistic 
+approaches like busywaiting.  However, there must be a point when using pthreads may prove 
+beneficial (we figure pthreads library exists for a reason), but we do not have time to 
+do a (Google) research into this matter.
+

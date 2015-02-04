@@ -1,0 +1,242 @@
+/lib/ld-linux.so.2
+N)/%
+__gmon_start__
+libc.so.6
+_IO_stdin_used
+socket
+fflush
+strcpy
+exit
+sprintf
+fopen
+__isoc99_sscanf
+connect
+signal
+puts
+stdin
+strtol
+fgets
+__errno_location
+read
+stdout
+memcpy
+strcasecmp
+getenv
+__ctype_b_loc
+stderr
+alarm
+gethostbyname
+gethostname
+bcopy
+close
+fprintf
+sleep
+__libc_start_main
+write
+GLIBC_2.1
+GLIBC_2.3
+GLIBC_2.7
+GLIBC_2.0
+PTRhp
+UWVS
+<[^_]
+UWVS
+Erro
+r: C
+lien
+t un
+able
+ to 
+crea
+te s
+@ ockef
+Erro
+r: D
+NS i
+s un
+able
+ to 
+reso
+lve 
+B serv
+B$er a
+B(ddref
+B,ss
+Erro
+r: U
+nabl
+e to
+ con
+nect
+ to 
+the 
+B servf
+B$er
++t$,)
+Erro
+r: R
+esul
+t st
+ring
+ too
+ lar
+ge. 
+@ Incr
+@$ease
+@( SUB
+@,MITR
+@0_MAX
+@4BUF
+<*t$<-t <.t
+M< u
+<	uF
+Erro
+r: C
+lien
+t un
+able
+ to 
+writ
+e to
+B  the
+B$ ser
+B(ver
+Erro
+r: C
+lien
+t un
+able
+ to 
+read
+ fir
+B st h
+B$eade
+B(r fr
+B,om s
+B0ervef
+Erro
+r: C
+lien
+t un
+able
+ to 
+read
+ hea
+B ders
+B$ fro
+B(m se
+B,rver
+Erro
+r: C
+lien
+t un
+able
+ to 
+read
+ sta
+B tus 
+B$mess
+B(age 
+B,from
+B0 ser
+B4ver
+[^_]
+Erro
+r: C
+lien
+t un
+able
+ to 
+crea
+te s
+F ockef
+Erro
+r: D
+NS i
+s un
+able
+ to 
+reso
+lve 
+F serv
+F$er a
+F(ddref
+F,ss
+ [^_
+UWVS
+[^_]
+%s: Error: Couldn't open %s
+Usage: %s [<input_file>]
+That's number 2.  Keep going!
+Halfway there!
+Good work!  On to the next...
+Welcome to my fiendish little bomb. You have 6 phases with
+which to blow yourself up. Have a nice day!
+Phase 1 defused. How about the next one?
+So you got that one.  Try this one.
+The future will be better tomorrow.
+Wow! You've defused the secret stage!
+So you think you can stop the bomb with ctrl-c, do you?
+Initialization error: Running on an illegal host [1]
+Initialization error: Running on an illegal host [2]
+ERROR: Input string is too large.
+Your instructor has been notified.
+Curses, you've found the secret phase!
+But finding it and solving it are quite different...
+Congratulations! You've defused the bomb!
+Your instructor has been notified and will verify your solution.
+Well...
+OK. :-)
+Invalid phase%s
+Initialization error:
+defused
+exploded
+%d:%s:%d:%s
+BOOM!!!
+The bomb has blown up.
+Error: Premature EOF on stdin
+GRADE_BOMB
+Error: Input line too long
+***truncated***
+%d %d %d %d %d %d
+%d %d %s
+DrEvil
+cycle1.csug.rochester.edu
+cycle2.csug.rochester.edu
+cycle3.csug.rochester.edu
+nye.csug.rochester.edu
+seward.csug.rochester.edu
+sawteeth.csug.rochester.edu
+marcy.csug.rochester.edu
+porter.csug.rochester.edu
+tabletop.csug.rochester.edu
+blake.csug.rochester.edu
+macomb.csug.rochester.edu
+cascade.csug.rochester.edu
+phelps.csug.rochester.edu
+colden.csug.rochester.edu
+skylight.csug.rochester.edu
+armstrong.csug.rochester.edu
+cliff.csug.rochester.edu
+gothics.csug.rochester.edu
+huogh.csug.rochester.edu
+haystack.csug.rochester.edu
+iroquois.csug.rochester.edu
+colvin.csug.rochester.edu
+whiteface.csug.rochester.edu
+panther.csug.rochester.edu
+algonquin.csug.rochester.edu
+wright.csug.rochester.edu
+redfield.csug.rochester.edu
+marshall.csug.rochester.edu
+Program timed out after %d seconds
+Error: Result string contains an illegal or unprintable character.
+Error: HTTP request failed with error %d: %s
+GET /%s/submitr.pl/?userid=%s&lab=%s&result=%s&submit=submit HTTP/1.0
+Error: Unable to connect to server %s
+%%%02X
+%s %d %[a-zA-z ]
+AUTORESULT_STRING=%s
+bomblab
+csapp
+pthiha

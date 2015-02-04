@@ -1,0 +1,36 @@
+./qemu/bin/qemu -m 64M -L ./qemu/share/qemu/ -hda hda.img -nographic -append "root=/dev/hda1 console=ttyS0,115200n8 console=tty0" -kernel linux-2.6.26.5/arch/i386/boot/bzImage
+
+
+
+cp -r ~cs456/QDGL ~
+cd QDGL
+ ./qemu/bin/qemu -m 64M -L ./qemu/share/qemu/ -hda hda.img -nographic 
+uname -a
+>>Linux cs2456 2.6.18-6-686 #1 SMP Tue Jun 17 21:31:27 UTC 2008 i686 GNU/Linux
+
+
+tar -jxvf linux-2.6.26.5.tar.bz2
+cd linux-2.6.26.5
+make
+./qemu/bin/qemu -m 64M -L ./qemu/share/qemu/ -hda hda.img -nographic -append "root=/dev/hda1 console=ttyS0,115200n8 console=tty0" -kernel linux-2.6.26.5/arch/i386/boot/bzImage
+uname -a
+>>Linux cs2456 2.6.26.5 #13 Sat Sep 24 10:27:23 EDT 2011 i686 GNU/Linux
+
+
+mkdir cs2456
+copy my code to above dir
+move "Makefile" in hw_2 dir to "cs2456/"
+copy Makefile_2 to "linux-2.6.26.5/"
+
+mv ~/fall_2011/cs_456/hw_2/prinfo.h ~/QDGL/linux-2.6.26.5/include/linux/
+mv ~/fall_2011/cs_456/hw_2/syscall_table_32.S /home/vax5/u53/pthiha/QDGL/linux-2.6.26.5/arch/x86/kernel/
+mv ~/fall_2011/cs_456/hw_2/unistd_32.h /home/vax5/u53/pthiha/QDGL/linux-2.6.26.5/include/asm-x86/
+
+
+[pthiha@cycle1 linux-2.6.26.5]$ make
+
+./qemu/bin/qemu -m 64M -L ./qemu/share/qemu/ -hda hda.img -nographic -append "root=/dev/hda1 console=ttyS0,115200n8 console=tty0" -kernel linux-2.6.26.5/arch/i386/boot/bzImage
+>>Linux cs2456 2.6.26.5 #14 Sat Sep 24 10:59:15 EDT 2011 i686 GNU/Linux
+
+
+

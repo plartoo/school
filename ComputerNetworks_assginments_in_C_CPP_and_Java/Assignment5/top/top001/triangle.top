@@ -1,0 +1,14 @@
+cycle1
+  cycle2 1.0
+  cycle3 99.0
+end
+
+cycle2
+  cycle1 1.0
+  cycle3 3.0
+end
+
+cycle3
+  cycle1 99.0
+  cycle2 3.0
+end

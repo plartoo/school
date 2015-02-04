@@ -1,0 +1,133 @@
+Assignment #4 - Peer to Peer Query Flooding
+Phyo Thiha <pthiha@cs.rochester.edu>
+CSC 457
+March 28th, 2013
+===============================================================================
+To compile:
+-----------
+    javac *.java
+
+To run:
+-------
+    For every peer in the network:
+        $ java Gnugatti <port> <share-directory> [<neighbor> ...]
+    Example:
+        $ java Gnugatti 21303 f11 f17 f13
+    
+    Note that, as specified in the assignment description, every neighbor given
+must be a machine that is already running Gnugatti.
+
+Description:
+------------
+    In this assignment, I implemented a peer-to-peer "file sharing" system
+similar to Gnutella, which I called Gnugatti. It is a true peer-to-peer system,
+in that all nodes are created equal (there is no central indexing server). It
+also guards against querying loops through hashing queries as well as giving
+each packet an expiration timer.
+    Gnugatti is implemented on top of TCP and transmits its information via
+Java objects called Gnugatti packets. Each Gnugatti packet has a query ID,
+a TTL which is decremented at each step, a source address, and a payload that
+carries information about the query or reply. Query IDs are the hash codes
+for guarding against loops. Each hash is split into two parts: the source 
+prefix, and the payload suffix. As the names suggest, the prefix is a hash 
+based on the source address of the query, and the suffix is a hash calculated 
+from the packet payload. Hashes are formatted this way to reduce the 
+likelihood that the same query initiated from different nodes will cause a 
+collision.
+    Packet payloads come in three forms: neighborhood establishment, queries,
+and responses to queries. Neighborhood establishments simply say "HI NEIGHBOR"
+and are sent directly to the new neighbor nodes. (QIDs and TTLs are ignored in
+this case) Query payloads are structured "QUERY: " followed by the file search
+prefix you are looking for. Reply payloads are structured "REPLY: " followed by
+all matches received, separated by commas. (In the case of reply, TTLs are again
+ignored since they are sent directly to the node that initiated the query)
+
+Known Limitation:
+-----------------
+    None that I'm aware of, but if you find anything (bug, problem running the code
+etc.), please don't hesitate to contact me. Thank you!
+
+Demo sequences (to help the TA in testing):
+-------------------------------------------
+Please follow the steps below to check the code's correctness.
+
+Network topology for this demo is as follows:
+					    f14
+					   /
+f20 --- f19 --- f18 --- f17 --- f11 --- f13
+					   \ 
+					    f16
+All the nodes above are in cs grad network.
+
+1. Run these on corresponding machines (second argument in the command)
+java Gnugatti 21303 f11 f17 f13
+java Gnugatti 21303 f13 f11 f14
+java Gnugatti 21303 f14 f13
+java Gnugatti 21303 f16 f13
+java Gnugatti 21303 f17 f11 f18
+java Gnugatti 21303 f18 f17 f19
+java Gnugatti 21303 f19 f18 f20
+java Gnugatti 21303 f20 f19
+
+2. Search "1-f17" from "f11"
+That'll flood the query to all neighbors (f13 and f17 in this case)
+and return "1-f17" from "f17" (as seen on "f11").
+
+If we look at "f17", we'll find that it returned the matching file
+and also flood the query to its neighbor, "f18" as shown below.
+[Gnugatti Receive] Found match for 1-f17: 1-f17
+[Gnugatti Receive] Flooding peer query to f18
+[Gnugatti Receive] Received packet:
+	Source: f11.cs.rochester.edu
+	Query ID: 7924265971445
+	TTL: 299
+
+If we check on "f18", we'll similarly find flooding as shown below
+[Gnugatti Receive] Flooding peer query to f19
+[Gnugatti Receive] Received packet:
+	Source: f11.cs.rochester.edu
+	Query ID: 7924265971445
+	TTL: 298
+We may notice that "f18" does not flood in the direction of "f17"
+because that's where there original message is coming in from. 
+This essentially helps loop avoidance. 
+
+**** Therefore, loop avoidance is proven. ****
+
+We can look at other nodes and prove that basic query flooding is implemented
+correctly.
+
+**** Therefore, basic query flooding is also proven. ****
+
+
+If the TA wants another example, try searching for "1-f20" from node "f16".
+Those two nodes are the furthest in my demo network topology. We'll see that
+"1-f20" is correctly found on "f20" (as seen on "f16"), that "f19" floods
+the query towards "f20", and that "f20" knows "f16" initiates the query
+for this file as shown below.
+
+[Gnugatti Receive] Received packet:
+	Source: f16.cs.rochester.edu
+	Query ID: 7945736190344
+	TTL: 294
+[Gnugatti Receive] Found match for 1-f20: 1-f20
+
+3. As for TTL control, we can see that TTL is correctly decremented as the message
+traverses through nodes for each of the above queries. We can also reduce the 
+TTL constant, DEFAULT_TTL, in "GnugattiPacket.java" to something ridiculous such as
+0, to see the messages got drop even at the first hop like this:
+e.g., find "1-f17" from "f20" and see that there's no return on the query. Also,
+on "f19", we'll see that the message got dropped/expired and never relayed to
+"f18".
+(stdout seen as on "f19")
+[Gnugatti Receive] Contacted by f20.cs.rochester.edu with neighborhood establishment message.
+[Gnugatti Receive] Received packet:
+	Source: f20.cs.rochester.edu
+	Query ID: 7924261353840
+	TTL: -1
+[Gnugatti Receive] Query 7924261353840 from f20.cs.rochester.edu/128.151.67.120 has expired.
+
+**** Therefore, TTL control is proven. ****
+=========================== END OF DEMO =======================================
+
+

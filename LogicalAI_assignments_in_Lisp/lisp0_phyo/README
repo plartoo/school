@@ -1,0 +1,24 @@
+Submission for Lisp0 project
+Due 11:59PM, Thursday 9/13/12
+Phyo Thiha
+
+
+- phyo_src.lisp --> Implementation of the functions specified in the assignment
+- phyo_test.lisp --> Contains test cases for functions in phyo_src.lisp
+
+To run the tests, please load the file:
+   (load "phyo_test")
+
+And type in:
+
+(test 11)
+(test 12)
+(test 2)
+(test 3)
+(test 4)
+(test 5)
+(test 6)
+
+to test each problems individually. Thank you.
+
+

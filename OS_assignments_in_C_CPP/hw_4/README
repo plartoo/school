@@ -1,0 +1,124 @@
+/*
+ * Authors: Ian Perera and Phyo Thiha
+ * CSC456/Assignment 4
+ * 
+ * Description: Implementation of mutex lock for user and kernel space.
+ * 
+ */
+ 
+ Division of labor:
+ Phyo: User space, pair programming with Kernel Space
+ Ian: Pair programming in Kernel Space, some solo programming in Kernel Space
+ 
+ We used SVN for version control.
+
+Our implementation aims to meet the following criteria:
+
+1. Mutual Exclusion: No other thread is allowed to get the lock, if one thread is in the critical section.
+2. Progress: Whenever a lock is available, some thread gets to run.
+3. Bounded Waiting: A thread trying to enter a critical section does not have to wait for an indefinite amt. of time.
+
+User space
+==========
+ * Usage: 
+ * // please use the files under 'user_space' for this
+ *      $ make clean // to clean the existing object and linker files
+ *      $ make libsthread.a // compile the linker from fresh
+ *      $ gcc -o <executable_file> <test_file.c> libsthread.a // compile the test file
+
+test.c - four threads and two mutexes
+Three out of four threads created will attempt to get the first mutex 
+for twice (to test the recursive mutex lock), then obtain another mutex.
+The remaining thread independently completes its execution without acquiring neither mutexes.
+
+If ALL FOUR threads complete without deadlock, this proves that:
+1. no two thread entered critical section at the same time
+2. every threads get the lock
+3. no thread has to wait indefinitely to enter its critical section
+
+Also, our implementation does not allow starvation of any thread waiting for the mutex.
+That is, if two threads are repeatedly locking and unlocking a mutex (say Thread 1 and 3 in our test.c program), 
+that should not prevent a third thread (Thread 4) from eventually getting the lock.
+
+Kernel space
+=============
+ * Usage: 
+ * // 1. please compile QEMU instance by using contents under 'kernel/sync/*' and files under 'kernel/'
+ * // 2. boot QEMU
+ * // 3. log into QEMU as 'cs2456' and copy our test file "kernel/test_file/sync_test.c" there
+ *      $ gcc -o sync_test sync_test.c // compile the test file
+ *	 $ ./sync_test
+ * // this will output something similar to below:
+
+cs2456@cs2456:~/sync_test$ ./sync_test
+[  388.372352] doevent_init called.
+[  388.386058] doeventopen called id: 1
+[  388.388338] doeventopen called id: 2
+[  388.391722] doeventopen called id: 3
+1.      Procees 2282 sleeping
+7.      Process 2281 going to signal before child
+[  388.402009] Waking up eventID 1
+[  388.402979] Finished waking up eventID 1
+8.      Processes released: 0
+9.      Process 2281 going to signal after child
+2.      Process 2282 going to wait
+[  390.405035] starting doeventwait for id: 1
+[  390.406312] doeventwait complete for id:  1
+3.      Process 2282 done waiting
+[  391.412509] Waking up eventID 1
+[  391.413642] Finished waking up eventID 1
+10.     Processes released: 1
+4.      Process 2283 going to wait
+[  392.416252] starting doeventwait for id: 2
+4.      Process 2282 going to wait
+[  392.420563] starting doeventwait for id: 2
+11.     Process 2281 going to signal after two children
+[  394.424389] Waking up eventID 1
+[  394.425353] Finished waking up eventID 1
+12.     Processes released: 0
+[  396.432440] Waking up eventID 1
+[  396.433569] Finished waking up eventID 1
+[  396.434777] doeventclose id 1
+[  396.438470] Waking up eventID 2
+[  396.439671] Finished waking up eventID 2
+[  396.441090] doeventclose id 2
+[  396.442037] doeventwait complete for id:  2
+5.      Process 2283 done waiting
+6.      Process 2283 going to wait
+[  396.445797] starting doeventwait for id: 3
+[  396.451005] Waking up eventID 3
+[  396.452272] Finished waking up eventID 3
+[  396.453666] doeventclose id 3
+[  396.454594] doeventwait complete for id:  3
+
+Our test plan was to create three events (say E1, E2 and E3) in the main program, 
+and first, fork a child process (C1). 
+
++ Before we have any process waiting in E1 of the child process, 
+we signal E1 TO TEST that it's okay to signal without any process waiting.
+
++ After waiting for 2 seconds in the C1, we put the process into the event E1's waitqueue.
+Then we call signal for E1 again from the parent process (P1).  That is TO TEST that
+if a SINGLE process is waiting, we can release it properly.
+
++ Then we fork again inside C1, and queue the resulting child (C2) to event E2.  This happens 
+twice since the original process C1 also ends up executing and queuing itself at E2.  The parent 
+process, P1, signals both of these processes and eventually releases them without incident.
+
++ Finally, we close all the events that are opened to prove that the program exits without any 
+incident of deadlock or hanging.
+
+This, we hope, will satisfy the requirements of this assignment as quoted below:
+
+"
+You are also asked to write a user-level program to test your new kernel functions. Your test program should show that the kernel functions work for the usual cases, for example, with one process waiting, and also for boundary conditions such as
++ no tasks waiting when doeventsig() is called,
++ multiple tasks waiting when doeventsig() is called,
++ multiple events open at one time, and
++ processes waiting when doeventclose() is called.
+"
+
+There is a bug where one of the processes continues to wait after the event has been closed. 
+We'll resubmit if we correct it.
+
+- Ian and Phyo

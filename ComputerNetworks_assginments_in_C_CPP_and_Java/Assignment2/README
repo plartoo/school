@@ -1,0 +1,173 @@
+CSC 457/Assignment#2
+Name - Phyo Thiha
+Date Modified - Feb 13, 2013
+Description: README for distance vector routing assignment
+==========================================================
+Files included:
+README - This file.
+Makefile - Makefile for compiling the code
+VectorRouting.cpp - Core file that drives distance vector routing.
+VectorRouting.h - The header file for "VectorRouting.cpp"
+mylib/node.cpp - Implementation of a node in linked list
+mylib/node.h - Header file for node.cpp
+mylib/LL.cpp - Implementation of linked list class
+mylib/LL.hh - Header file for linked list class
+mylib/LLL.cpp - Implementation of linked list of linked lists class
+mylib/LLL.hh - Header file for linked list of linked lists class
+
+To compile -
+$ make
+
+To run - 
+$./vector <input_file_with_neighbor_node_and_cost_information>
+
+Note: Please ake sure that the input files are in the same directory as the vector routing program. The link costs between two nodes can be changed by changing the input file.
+
+
+Objective:
+===========
+The objective of this assignment is to implement our own distance vector routing protocol. This is a protocol that could be implemented in routers to find the shortest distance between each pair of nodes. The algorithm only knows what their neighbors are and the distance/weight to it, but this algorithm will discover what nodes (a.k.a routers) are part of the graph. 
+
+Implementation (Design description):
+=====================================
+To implement the protocol, we need a data structure that can grow dynamically and can represent a table. It has to grow because the total number of nodes in the graph is not available at the beginning. To achieve this we implemented a linked list of linked lists (couldn't figure out a way to use hash tables in C++'s standard library along with arrays). Each list represent the next 'hop' and the nodes in the contain the information on the destination. This is the distance vector.
+
+(Head_Of_Linked_List_Of_Linked_List)
+ ||
+ \/
+ _ _ _ _ _         _ _ _ _ _ _ _ 	  _ _ _ _ _ _ _ 
+|         |       |             |	 |             |
+| Node A  |  ---> |   Dest.  B  |   ---> |   Dest.  E  | ---> ....
+|_ _ _ _ _|       |_ _ _ _ _ _ _|	 |_ _ _ _ _ _ _|
+     ||
+     \/
+ _ _ _ _ _         _ _ _ _ _ _ _ 	  _ _ _ _ _ _ _ 
+|         |       |             |	 |             |
+| Node B  |  ---> |   Dest. E   |   ---> |   Dest. A   | ---> ....
+|_ _ _ _ _|       |_ _ _ _ _ _ _|	 |_ _ _ _ _ _ _|
+     ||
+     \/
+ _ _ _ _ _         _ _ _ _ _ _ _ 	  _ _ _ _ _ _ _ 
+|         |       |             |	 |             |
+| Node E  |  ---> |   Dest. B   |   ---> |   Dest. A   | ---> ....
+|_ _ _ _ _|       |_ _ _ _ _ _ _|	 |_ _ _ _ _ _ _|
+     ||
+     \/
+      .
+      .
+      .
+
+Figure 1: Diagram of the data structure we created to represent vector routing table. Whenever a new node appears in the network, it is added to the "Linked list of linked lists" by its neighbors. Each node in the "linked list of linked lists" store the names of destination nodes along with their corresponding costs as a "linked list". Here, "Node B" means, the next hop is B; and the linked list stored under "Node B" will store the destination nodes (such as E and A) and their corresponding costs. 
+
+Note that for each column in the distance vector table above, the destination names are not lined up in the same order, and they do not need to be in practice as well. Since our basic data structure is a linked list, we will read half the nodes in the linked list on average to find/update the cost.
+
+When the link cost increases, there are case where it take a lot of communications between the routers for the costs to converge. This is called the recursive-update problem in the assignment description. To avoid this problem, we implemented the algorithm such that there cannot be a direct loop between neighbors. This can be done by checking the hop. When node (router) A sees that its neighbor node B's shortest path to node Z is through A, then A will set its distance vector going to Z through B to infinity. This will avoid A going through B and eliminate some possible pathological cases. This cannot avoid all the pathological cases because the loop might not be on the link between the neighbors, but could go through some other nodes.
+
+The distance vector is a fairly large data structure. Since we do not want the routers to use up the bandwidth of the network only for finding the shortest path, we want to send smaller information to the neighbors than sending the entire distance vector. So, from the distance vector, the program will build a routing table The routing table has information for each destination it knows about, the first hop to the destination and the shortest distance to the destination. This table will be sent to the neighbors. The routing table has enough information for the neighbors to calculate the shortest distance to all other nodes.
+
+	Destination		NextHop		Distance/Cost
+	===========		=======		=============
+	D			A		20
+	E			G		1.5
+	F			D		2
+	C			A		4
+	B			A		3.2
+
+Table 1. Example of a routing table. Here, the NextHop is the node that we must take to reach the destination node with least cost.
+
+To send the data structure to the other side, I encoded the data into a string. The receiving side will read the string using sscanf to update its distance vector. The format is:
+<NUMBER OF KNOWN DESTINATION>
+<DEST1> <HOP1> <DISTANCE1>
+<DEST2> <HOP2> <DISTANCE2>
+...
+
+Input:
+======
+Input File Format:
+<NAME OF THIS HOST>.dat:
+<NUMBER OF NEIGHBORS>
+<NAME1> <DISTANCE1>
+<NAME2> <DISTANCE2>
+...
+Points to note:
+• The distance will be read in as a float.
+• Name field must be the address of the host
+• The input file name must be the name of the host + ".dat" so if the machine is 'marcy' in the undergrad lab, then the file name must be 'marcy.csug.rocheter.edu.dat'
+• Also, make sure that the input files are in the same directory as the vector routing
+program.
+• The link costs between two nodes can be changed by changing the input file. The file
+will be locked using flock while the file is being read, so it should be safe.
+
+Output:
+=======
+Example of the output of at each node is as required by the assignment <http://www.cs.rochester.edu/u/kshen/csc257-spring2013/>:
+
+## sequence number <NUMBER>
+Shortest path from host: <HOST>
+To			Next hop			Cost
+==			========			====
+f02.cs.rochester.edu	f04.cs.rochester.edu		3
+f03.cs.rochester.edu	f04.cs.rochester.edu		3
+.
+.
+.
+
+How I tested:
+=============
+I tested the example network given in the assignment and replace the node names
+"a", "b", "c", "d", "e" and "f" with "f01", "f02", "f03", "f04", "f05", and "f06" respectively. The "f01" means the name of a grad machine in the department. 
+Therefore, in order to test, we need to ssh into "f01.cs.rochester.edu" and run my program as 
+$ ./vector f01.cs.rochester.edu.dat
+For machine "f02", please do the same.
+
+After launching the program in each of the machines ranging from "f01", "f02",..., "f06"
+we will notice the following:
+
+For node at "f01", it started out with given neighbor information
+in the ".dat" file.
+
+## sequence number 1
+Shortest path from host: f01.cs.rochester.edu
+To			Next hop			Cost
+==			========			====
+f02.cs.rochester.edu	f02.cs.rochester.edu		2
+f03.cs.rochester.edu	f03.cs.rochester.edu		5
+f04.cs.rochester.edu	f04.cs.rochester.edu		1
+
+Then it stabalizes to this after launching the program from 
+other neighbors (from "f02" to "f06").
+
+## sequence number 10
+Shortest path from host: f01.cs.rochester.edu
+To			Next hop			Cost
+==			========			====
+f02.cs.rochester.edu	f02.cs.rochester.edu		2
+f03.cs.rochester.edu	f04.cs.rochester.edu		3
+f04.cs.rochester.edu	f04.cs.rochester.edu		1
+f05.cs.rochester.edu	f04.cs.rochester.edu		2
+f06.cs.rochester.edu	f04.cs.rochester.edu		4
+
+After changing the cost of "f01" => "f02" from "2" to "4" (in BOTH "f01.cs.rochester.edu.dat" and "f02.cs.rochester.edu.dat", we observe the change at "f01" as below:
+
+## sequence number 33
+Shortest path from host: f01.cs.rochester.edu
+To			Next hop			Cost
+==			========			====
+f02.cs.rochester.edu	f04.cs.rochester.edu		3
+f03.cs.rochester.edu	f04.cs.rochester.edu		3
+f04.cs.rochester.edu	f04.cs.rochester.edu		1
+f05.cs.rochester.edu	f04.cs.rochester.edu		2
+f06.cs.rochester.edu	f04.cs.rochester.edu		4
+
+AND observe the following change at "f02" as shown below:
+## sequence number 28
+Shortest path from host: f02.cs.rochester.edu
+To			Next hop			Cost
+==			========			====
+f01.cs.rochester.edu	f04.cs.rochester.edu		3
+f03.cs.rochester.edu	f03.cs.rochester.edu		3
+f04.cs.rochester.edu	f04.cs.rochester.edu		2
+f05.cs.rochester.edu	f04.cs.rochester.edu		3
+f06.cs.rochester.edu	f04.cs.rochester.edu		5
+
+Thank you and if you have questions about the program or testing, please email me at <pthiha@cs.rochester.edu>.
